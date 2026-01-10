@@ -1,38 +1,33 @@
 // lib/features/home/screens/home_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/core.dart';
 import '../../../shared/models/models.dart';
-import '../../../services/task_service.dart';
 import '../widgets/focus_session_card.dart';
 import '../widgets/widgets.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
-/// 홈 화면
+/// 홈 화면 (Riverpod 적용)
 /// ═══════════════════════════════════════════════════════════════════════════
 ///
 /// 앱의 메인 홈 화면
-/// 헤더, 포커스 세션, 프로그레스, 태스크, 주간목표 섹션 포함
+/// Riverpod를 사용한 반응형 UI
 /// ═══════════════════════════════════════════════════════════════════════════
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   final Function(int)? onNavigate;
 
   const HomeScreen({Key? key, this.onNavigate}) : super(key: key);
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final _taskService = TaskService();
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedTaskIndex = -1;
 
-  // 포커스 세션 관련 상태
-  String? _currentFocusTask;
-  DateTime? _focusStartTime;
-
-  // 주간 목표 데이터
+  // 주간 목표 데이터 (나중에 Provider로 변경 가능)
   late final List<Goal> _goals;
 
   @override
@@ -40,7 +35,10 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     AppLogger.d('HomeScreen initState', tag: 'HomeScreen');
 
-    // loadSampleData() 제거 - 이제 Hive에서 자동으로 로드됨
+    // Focus Session 복원
+    Future.microtask(() {
+      ref.read(focusSessionProvider.notifier).restoreSession();
+    });
 
     _goals = [
       Goal(
@@ -75,81 +73,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 상태 계산 (TaskService에서 가져오기)
-  // ─────────────────────────────────────────────────────────────────────────
-
-  List<Task> get _tasks => _taskService.tasks;
-  int get _completionRate => _taskService.completionRate;
-  int get _completedCount => _taskService.completedTasks.length;
-  int get _inProgressCount => _taskService.inProgressTasks.length;
-  int get _pendingCount => _taskService.pendingTasks.length;
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // 포커스 세션 이벤트 핸들러
-  // ─────────────────────────────────────────────────────────────────────────
-
-  void _handleStartFocusSession() {
-    setState(() {
-      // 진행중인 태스크가 있으면 그걸로, 없으면 첫 번째 pending 태스크
-      final inProgressTasks = _taskService.inProgressTasks;
-      final pendingTasks = _taskService.pendingTasks;
-
-      if (inProgressTasks.isNotEmpty) {
-        _currentFocusTask = inProgressTasks.first.title;
-      } else if (pendingTasks.isNotEmpty) {
-        _currentFocusTask = pendingTasks.first.title;
-      } else if (_tasks.isNotEmpty) {
-        _currentFocusTask = _tasks.first.title;
-      }
-
-      _focusStartTime = DateTime.now();
-    });
-
-    AppLogger.ui(
-      'Focus session started: $_currentFocusTask',
-      screen: 'HomeScreen',
-    );
-  }
-
-  void _handlePauseFocusSession() {
-    setState(() {
-      _currentFocusTask = null;
-      _focusStartTime = null;
-    });
-
-    AppLogger.ui('Focus session paused', screen: 'HomeScreen');
-  }
-
-  void _handleCompleteFocusSession() {
-    setState(() {
-      _currentFocusTask = null;
-      _focusStartTime = null;
-    });
-
-    AppLogger.ui('Focus session completed', screen: 'HomeScreen');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Great work! Focus session completed 🎉'),
-        backgroundColor: AppColors.accentGreen,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // 태스크 이벤트 핸들러
+  // 이벤트 핸들러
   // ─────────────────────────────────────────────────────────────────────────
 
   void _handleTaskTap(int index) {
     setState(() {
       _selectedTaskIndex = _selectedTaskIndex == index ? -1 : index;
     });
-    AppLogger.ui('Task selected: ${_tasks[index].title}', screen: 'HomeScreen');
+
+    final tasks = ref.read(taskListProvider);
+    AppLogger.ui('Task selected: ${tasks[index].title}', screen: 'HomeScreen');
   }
 
-  void _handleTaskStatusChange(int index) {
-    final task = _tasks[index];
+  Future<void> _handleTaskStatusChange(int index) async {
+    final tasks = ref.read(taskListProvider);
+    final task = tasks[index];
 
     // 상태 순환: pending -> in-progress -> completed -> pending
     String newStatus;
@@ -161,9 +99,9 @@ class _HomeScreenState extends State<HomeScreen> {
       newStatus = 'completed';
     }
 
-    _taskService.changeTaskStatus(task.id, newStatus);
-
-    setState(() {});
+    await ref
+        .read(taskListProvider.notifier)
+        .changeTaskStatus(task.id, newStatus);
 
     AppLogger.ui(
       'Task status changed: ${task.title} -> $newStatus',
@@ -185,8 +123,8 @@ class _HomeScreenState extends State<HomeScreen> {
     TaskFormDialog.show(
       context: context,
       onSaved: (task) {
-        setState(() {});
-
+        // TaskFormDialog 내부에서 이미 Provider를 통해 추가되므로
+        // 여기서는 피드백만 제공
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('태스크가 추가되었습니다: ${task.title}'),
@@ -199,7 +137,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleEditTaskTap(int index) {
-    final task = _tasks[index];
+    final tasks = ref.read(taskListProvider);
+    final task = tasks[index];
 
     AppLogger.ui('Edit task tapped: ${task.title}', screen: 'HomeScreen');
 
@@ -207,8 +146,6 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       task: task,
       onSaved: (updatedTask) {
-        setState(() {});
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('태스크가 수정되었습니다: ${updatedTask.title}'),
@@ -221,7 +158,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleDeleteTaskTap(int index) {
-    final task = _tasks[index];
+    final tasks = ref.read(taskListProvider);
+    final task = tasks[index];
 
     AppLogger.ui('Delete task tapped: ${task.title}', screen: 'HomeScreen');
 
@@ -231,21 +169,23 @@ class _HomeScreenState extends State<HomeScreen> {
       message: AppStrings.dialogDeleteMessage,
       confirmText: AppStrings.dialogDeleteConfirm,
       cancelText: AppStrings.dialogDeleteCancel,
-    ).then((confirmed) {
+    ).then((confirmed) async {
       if (confirmed == true) {
-        _taskService.deleteTask(task.id);
+        await ref.read(taskListProvider.notifier).deleteTask(task.id);
 
         setState(() {
           _selectedTaskIndex = -1;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('태스크가 삭제되었습니다: ${task.title}'),
-            backgroundColor: AppColors.accentRed,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('태스크가 삭제되었습니다: ${task.title}'),
+              backgroundColor: AppColors.accentRed,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
 
         AppLogger.i('Task deleted: ${task.title}', tag: 'HomeScreen');
       }
@@ -262,6 +202,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Provider에서 데이터 구독
+    final tasks = ref.watch(taskListProvider);
+    final completionRate = ref.watch(completionRateProvider);
+    final completedTasks = ref.watch(completedTasksProvider);
+    final inProgressTasks = ref.watch(inProgressTasksProvider);
+    final pendingTasks = ref.watch(pendingTasksProvider);
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Padding(
@@ -279,25 +226,22 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: AppSizes.spaceXXL),
 
-            FocusSessionCard(
-              currentTaskTitle: _currentFocusTask,
-              startTime: _focusStartTime,
-              onStartSession: _handleStartFocusSession,
-              onPause: _handlePauseFocusSession,
-              onComplete: _handleCompleteFocusSession,
-            ),
+            // Focus Session Card (Riverpod 적용됨)
+            const FocusSessionCard(),
             const SizedBox(height: AppSizes.spaceXL),
 
+            // Progress Section (자동 갱신됨)
             ProgressSection(
-              completionRate: _completionRate,
-              completedCount: _completedCount,
-              inProgressCount: _inProgressCount,
-              pendingCount: _pendingCount,
+              completionRate: completionRate,
+              completedCount: completedTasks.length,
+              inProgressCount: inProgressTasks.length,
+              pendingCount: pendingTasks.length,
             ),
             const SizedBox(height: AppSizes.spaceXL),
 
+            // Tasks Section (자동 갱신됨)
             TasksSection(
-              tasks: _tasks,
+              tasks: tasks,
               selectedTaskIndex: _selectedTaskIndex,
               onTaskTap: _handleTaskTap,
               onTaskStatusChange: _handleTaskStatusChange,

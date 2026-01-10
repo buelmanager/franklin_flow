@@ -2,6 +2,7 @@
 
 import 'package:hive_flutter/hive_flutter.dart';
 import '../core/utils/app_logger.dart';
+import '../shared/models/focus_session_model.dart';
 import '../shared/models/task_model.dart';
 import '../shared/models/category_model.dart';
 
@@ -34,6 +35,12 @@ class LocalStorageService {
   late Box _settingsBox;
 
   bool _isInitialized = false;
+
+  // Box 이름
+  static const String _focusSessionBoxName = 'focus_sessions';
+
+  // Box 인스턴스
+  late Box<FocusSession> _focusSessionBox;
 
   // ─────────────────────────────────────────────────────────────────────────
   // 초기화
@@ -76,6 +83,7 @@ class LocalStorageService {
       _taskBox = await Hive.openBox<Task>(_taskBoxName);
       _categoryBox = await Hive.openBox<Category>(_categoryBoxName);
       _settingsBox = await Hive.openBox(_settingsBoxName);
+      _focusSessionBox = await Hive.openBox<FocusSession>(_focusSessionBoxName);
 
       _isInitialized = true;
 
@@ -231,5 +239,45 @@ class LocalStorageService {
     await _settingsBox.clear();
     await _initializeDefaultCategories();
     AppLogger.i('All data cleared and reset', tag: 'LocalStorageService');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // FocusSession CRUD
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 모든 세션 가져오기
+  List<FocusSession> getFocusSessions() {
+    _checkInitialized();
+    return _focusSessionBox.values.toList();
+  }
+
+  /// 세션 저장
+  Future<void> saveFocusSession(FocusSession session) async {
+    _checkInitialized();
+    await _focusSessionBox.put(session.id, session);
+    AppLogger.d(
+      'Focus session saved: ${session.taskTitle} (ID: ${session.id})',
+      tag: 'LocalStorageService',
+    );
+  }
+
+  /// 세션 삭제
+  Future<void> deleteFocusSession(int sessionId) async {
+    _checkInitialized();
+    await _focusSessionBox.delete(sessionId);
+    AppLogger.d(
+      'Focus session deleted: ID $sessionId',
+      tag: 'LocalStorageService',
+    );
+  }
+
+  /// 다음 세션 ID 생성
+  int getNextFocusSessionId() {
+    _checkInitialized();
+    if (_focusSessionBox.isEmpty) return 1;
+    final maxId = _focusSessionBox.keys.cast<int>().reduce(
+      (a, b) => a > b ? a : b,
+    );
+    return maxId + 1;
   }
 }

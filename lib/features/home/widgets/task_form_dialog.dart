@@ -1,6 +1,7 @@
 // lib/features/home/widgets/task_form_dialog.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/core.dart';
 import '../../../shared/models/task_model.dart';
 import '../../../services/task_service.dart';
@@ -20,7 +21,7 @@ import '../../../services/task_service.dart';
 ///   TaskFormDialog.show(context: context, task: existingTask);
 /// ═══════════════════════════════════════════════════════════════════════════
 
-class TaskFormDialog extends StatefulWidget {
+class TaskFormDialog extends ConsumerStatefulWidget {
   /// 수정할 태스크 (null이면 새로 추가)
   final Task? task;
 
@@ -49,10 +50,10 @@ class TaskFormDialog extends StatefulWidget {
   }
 
   @override
-  State<TaskFormDialog> createState() => _TaskFormDialogState();
+  ConsumerState<TaskFormDialog> createState() => _TaskFormDialogState();
 }
 
-class _TaskFormDialogState extends State<TaskFormDialog> {
+class _TaskFormDialogState extends ConsumerState<TaskFormDialog> {
   final _formKey = GlobalKey<FormState>();
   final _taskService = TaskService();
 
@@ -88,6 +89,7 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
   // 이벤트 핸들러
   // ─────────────────────────────────────────────────────────────────────────
 
+  // 저장 메서드 수정
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) {
       AppLogger.w('Form validation failed', tag: 'TaskFormDialog');
@@ -117,7 +119,10 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
           categoryId: _selectedCategoryId,
         );
 
-        final success = await _taskService.updateTask(savedTask);
+        // Provider를 통해 업데이트
+        final success = await ref
+            .read(taskListProvider.notifier)
+            .updateTask(savedTask);
 
         if (!success) {
           _showError('태스크 수정에 실패했습니다.');
@@ -126,12 +131,14 @@ class _TaskFormDialogState extends State<TaskFormDialog> {
 
         AppLogger.i('Task updated: ${savedTask.title}', tag: 'TaskFormDialog');
       } else {
-        // 추가 모드
-        savedTask = await _taskService.addTask(
-          title: _titleController.text.trim(),
-          timeInMinutes: _selectedTimeInMinutes!,
-          categoryId: _selectedCategoryId!,
-        );
+        // 추가 모드 - Provider를 통해 추가
+        savedTask = await ref
+            .read(taskListProvider.notifier)
+            .addTask(
+              title: _titleController.text.trim(),
+              timeInMinutes: _selectedTimeInMinutes!,
+              categoryId: _selectedCategoryId!,
+            );
 
         AppLogger.i('Task created: ${savedTask.title}', tag: 'TaskFormDialog');
       }
