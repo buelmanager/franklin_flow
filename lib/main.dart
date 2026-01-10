@@ -12,7 +12,11 @@ import 'features/analytics/analytics.dart';
 import 'features/schedule/schedule.dart';
 import 'features/settings/settings.dart';
 
-void main() {
+// Services
+import 'services/local_storage_service.dart';
+
+void main() async {
+  // Flutter 바인딩 초기화
   WidgetsFlutterBinding.ensureInitialized();
 
   // 상태바 스타일 설정
@@ -24,6 +28,21 @@ void main() {
   );
 
   AppLogger.i('앱 시작', tag: 'Main');
+
+  // Hive 초기화
+  try {
+    AppLogger.i('Hive 초기화 시작...', tag: 'Main');
+    await LocalStorageService.init();
+    AppLogger.i('Hive 초기화 완료', tag: 'Main');
+
+    // Box 열기
+    AppLogger.i('Storage Box 열기 시작...', tag: 'Main');
+    await LocalStorageService().openBoxes();
+    AppLogger.i('Storage Box 열기 완료', tag: 'Main');
+  } catch (e, stackTrace) {
+    AppLogger.e('Hive 초기화 실패', tag: 'Main', error: e, stackTrace: stackTrace);
+  }
+
   runApp(const FranklinFlowApp());
 }
 

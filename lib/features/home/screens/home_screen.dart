@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 import '../../../shared/models/models.dart';
+import '../../../services/task_service.dart';
 import '../widgets/focus_session_card.dart';
 import '../widgets/widgets.dart';
 
@@ -24,39 +25,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final _taskService = TaskService();
   int _selectedTaskIndex = -1;
 
   // 포커스 세션 관련 상태
   String? _currentFocusTask;
   DateTime? _focusStartTime;
-
-  // 태스크 데이터
-  final List<Task> _tasks = [
-    Task(
-      id: 1,
-      title: '클라이언트 미팅',
-      status: 'in-progress',
-      progress: 55,
-      time: '2시간',
-      category: '업무',
-    ),
-    Task(
-      id: 2,
-      title: '이메일 답변',
-      status: 'pending',
-      progress: 0,
-      time: '1시간',
-      category: '업무',
-    ),
-    Task(
-      id: 3,
-      title: '문서 작성',
-      status: 'completed',
-      progress: 100,
-      time: '1.5시간',
-      category: '업무',
-    ),
-  ];
 
   // 주간 목표 데이터
   late final List<Goal> _goals;
@@ -65,6 +39,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     AppLogger.d('HomeScreen initState', tag: 'HomeScreen');
+
+    // loadSampleData() 제거 - 이제 Hive에서 자동으로 로드됨
 
     _goals = [
       Goal(
@@ -99,20 +75,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 상태 계산
+  // 상태 계산 (TaskService에서 가져오기)
   // ─────────────────────────────────────────────────────────────────────────
 
-  int get _completionRate {
-    if (_tasks.isEmpty) return 0;
-    int completed = _tasks.where((t) => t.status == 'completed').length;
-    return ((completed / _tasks.length) * 100).round();
-  }
-
-  int get _completedCount =>
-      _tasks.where((t) => t.status == 'completed').length;
-  int get _inProgressCount =>
-      _tasks.where((t) => t.status == 'in-progress').length;
-  int get _pendingCount => _tasks.where((t) => t.status == 'pending').length;
+  List<Task> get _tasks => _taskService.tasks;
+  int get _completionRate => _taskService.completionRate;
+  int get _completedCount => _taskService.completedTasks.length;
+  int get _inProgressCount => _taskService.inProgressTasks.length;
+  int get _pendingCount => _taskService.pendingTasks.length;
 
   // ─────────────────────────────────────────────────────────────────────────
   // 포커스 세션 이벤트 핸들러
@@ -121,15 +91,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void _handleStartFocusSession() {
     setState(() {
       // 진행중인 태스크가 있으면 그걸로, 없으면 첫 번째 pending 태스크
-      final inProgressTask = _tasks.firstWhere(
-        (t) => t.status == 'in-progress',
-        orElse: () => _tasks.firstWhere(
-          (t) => t.status == 'pending',
-          orElse: () => _tasks.first,
-        ),
-      );
+      final inProgressTasks = _taskService.inProgressTasks;
+      final pendingTasks = _taskService.pendingTasks;
 
-      _currentFocusTask = inProgressTask.title;
+      if (inProgressTasks.isNotEmpty) {
+        _currentFocusTask = inProgressTasks.first.title;
+      } else if (pendingTasks.isNotEmpty) {
+        _currentFocusTask = pendingTasks.first.title;
+      } else if (_tasks.isNotEmpty) {
+        _currentFocusTask = _tasks.first.title;
+      }
+
       _focusStartTime = DateTime.now();
     });
 
@@ -149,7 +121,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleCompleteFocusSession() {
-    // TODO: 작업 완료 처리 및 통계 업데이트
     setState(() {
       _currentFocusTask = null;
       _focusStartTime = null;
@@ -157,12 +128,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     AppLogger.ui('Focus session completed', screen: 'HomeScreen');
 
-    // 스낵바로 완료 메시지 표시
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      const SnackBar(
         content: Text('Great work! Focus session completed 🎉'),
         backgroundColor: AppColors.accentGreen,
-        duration: const Duration(seconds: 2),
+        duration: Duration(seconds: 2),
       ),
     );
   }
@@ -179,44 +149,111 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleTaskStatusChange(int index) {
-    setState(() {
-      final task = _tasks[index];
-      if (task.status == 'completed') {
-        task.status = 'pending';
-        task.progress = 0;
-      } else if (task.status == 'pending') {
-        task.status = 'in-progress';
-        task.progress = 30;
-      } else {
-        task.status = 'completed';
-        task.progress = 100;
-      }
-    });
+    final task = _tasks[index];
+
+    // 상태 순환: pending -> in-progress -> completed -> pending
+    String newStatus;
+    if (task.status == 'completed') {
+      newStatus = 'pending';
+    } else if (task.status == 'pending') {
+      newStatus = 'in-progress';
+    } else {
+      newStatus = 'completed';
+    }
+
+    _taskService.changeTaskStatus(task.id, newStatus);
+
+    setState(() {});
 
     AppLogger.ui(
-      'Task status changed: ${_tasks[index].title} -> ${_tasks[index].status}',
+      'Task status changed: ${task.title} -> $newStatus',
       screen: 'HomeScreen',
     );
   }
 
   void _handleNotificationTap() {
     AppLogger.ui('Notification tapped', screen: 'HomeScreen');
-    // TODO: 알림 화면으로 이동
   }
 
   void _handleProfileTap() {
     AppLogger.ui('Profile tapped', screen: 'HomeScreen');
-    // TODO: 프로필 화면으로 이동
   }
 
   void _handleAddTaskTap() {
     AppLogger.ui('Add task tapped', screen: 'HomeScreen');
-    // TODO: 태스크 추가 다이얼로그
+
+    TaskFormDialog.show(
+      context: context,
+      onSaved: (task) {
+        setState(() {});
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('태스크가 추가되었습니다: ${task.title}'),
+            backgroundColor: AppColors.accentGreen,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
+    );
+  }
+
+  void _handleEditTaskTap(int index) {
+    final task = _tasks[index];
+
+    AppLogger.ui('Edit task tapped: ${task.title}', screen: 'HomeScreen');
+
+    TaskFormDialog.show(
+      context: context,
+      task: task,
+      onSaved: (updatedTask) {
+        setState(() {});
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('태스크가 수정되었습니다: ${updatedTask.title}'),
+            backgroundColor: AppColors.accentBlue,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
+    );
+  }
+
+  void _handleDeleteTaskTap(int index) {
+    final task = _tasks[index];
+
+    AppLogger.ui('Delete task tapped: ${task.title}', screen: 'HomeScreen');
+
+    NeumorphicDialog.showConfirm(
+      context: context,
+      title: AppStrings.dialogDeleteTitle,
+      message: AppStrings.dialogDeleteMessage,
+      confirmText: AppStrings.dialogDeleteConfirm,
+      cancelText: AppStrings.dialogDeleteCancel,
+    ).then((confirmed) {
+      if (confirmed == true) {
+        _taskService.deleteTask(task.id);
+
+        setState(() {
+          _selectedTaskIndex = -1;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('태스크가 삭제되었습니다: ${task.title}'),
+            backgroundColor: AppColors.accentRed,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        AppLogger.i('Task deleted: ${task.title}', tag: 'HomeScreen');
+      }
+    });
   }
 
   void _handleGoalTap(int index) {
     AppLogger.ui('Goal tapped: ${_goals[index].title}', screen: 'HomeScreen');
-    // TODO: 목표 상세 화면으로 이동
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -234,16 +271,14 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             const SizedBox(height: AppSizes.spaceL),
 
-            // 헤더 (개선 버전)
             HomeHeader(
-              userName: 'Wade', // TODO: 실제 사용자 이름으로 변경
-              notificationCount: 3, // TODO: 실제 알림 개수로 변경
+              userName: 'Wade',
+              notificationCount: 3,
               onNotificationTap: _handleNotificationTap,
               onProfileTap: _handleProfileTap,
             ),
             const SizedBox(height: AppSizes.spaceXXL),
 
-            // 포커스 세션 카드 (DateTimeCard 대체)
             FocusSessionCard(
               currentTaskTitle: _currentFocusTask,
               startTime: _focusStartTime,
@@ -253,7 +288,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: AppSizes.spaceXL),
 
-            // 프로그레스 섹션
             ProgressSection(
               completionRate: _completionRate,
               completedCount: _completedCount,
@@ -262,20 +296,19 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: AppSizes.spaceXL),
 
-            // 태스크 섹션
             TasksSection(
               tasks: _tasks,
               selectedTaskIndex: _selectedTaskIndex,
               onTaskTap: _handleTaskTap,
               onTaskStatusChange: _handleTaskStatusChange,
               onAddTap: _handleAddTaskTap,
+              onEditTap: _handleEditTaskTap,
+              onDeleteTap: _handleDeleteTaskTap,
             ),
             const SizedBox(height: AppSizes.spaceXL),
 
-            // 주간 목표 섹션
             WeeklyGoalsSection(goals: _goals, onGoalTap: _handleGoalTap),
 
-            // 하단 여백 (네비게이션 바 공간)
             const SizedBox(height: 100),
           ],
         ),

@@ -68,6 +68,36 @@ class AppStrings {
   static const String btnConfirm = '확인';
 
   // ─────────────────────────────────────────────────────────────────────────
+  // 태스크 폼 (추가됨)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static const String taskFormTitleAdd = '새 태스크 추가';
+  static const String taskFormTitleEdit = '태스크 수정';
+  static const String taskFormFieldTitle = '태스크 제목';
+  static const String taskFormFieldTime = '예상 시간';
+  static const String taskFormFieldCategory = '카테고리';
+  static const String taskFormHintTitle = '무엇을 하시겠습니까?';
+  static const String taskFormHintTime = '예: 2시간, 30분';
+  static const String taskFormHintCategory = '업무, 개인, 운동 등';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 다이얼로그 (추가됨)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static const String dialogDeleteTitle = '태스크 삭제';
+  static const String dialogDeleteMessage = '이 태스크를 삭제하시겠습니까?';
+  static const String dialogDeleteConfirm = '삭제';
+  static const String dialogDeleteCancel = '취소';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 검증 메시지 (추가됨)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static const String validationTitleRequired = '제목을 입력해주세요';
+  static const String validationTimeRequired = '예상 시간을 입력해주세요';
+  static const String validationCategoryRequired = '카테고리를 입력해주세요';
+
+  // ─────────────────────────────────────────────────────────────────────────
   // 요일
   // ─────────────────────────────────────────────────────────────────────────
 
