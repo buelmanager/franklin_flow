@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 import '../../../shared/models/models.dart';
+import '../widgets/focus_session_card.dart';
 import '../widgets/widgets.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
@@ -10,7 +11,7 @@ import '../widgets/widgets.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 ///
 /// 앱의 메인 홈 화면
-/// 헤더, 날짜/시계, 프로그레스, 태스크, 주간목표 섹션 포함
+/// 헤더, 포커스 세션, 프로그레스, 태스크, 주간목표 섹션 포함
 /// ═══════════════════════════════════════════════════════════════════════════
 
 class HomeScreen extends StatefulWidget {
@@ -24,6 +25,10 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedTaskIndex = -1;
+
+  // 포커스 세션 관련 상태
+  String? _currentFocusTask;
+  DateTime? _focusStartTime;
 
   // 태스크 데이터
   final List<Task> _tasks = [
@@ -110,7 +115,60 @@ class _HomeScreenState extends State<HomeScreen> {
   int get _pendingCount => _tasks.where((t) => t.status == 'pending').length;
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 이벤트 핸들러
+  // 포커스 세션 이벤트 핸들러
+  // ─────────────────────────────────────────────────────────────────────────
+
+  void _handleStartFocusSession() {
+    setState(() {
+      // 진행중인 태스크가 있으면 그걸로, 없으면 첫 번째 pending 태스크
+      final inProgressTask = _tasks.firstWhere(
+        (t) => t.status == 'in-progress',
+        orElse: () => _tasks.firstWhere(
+          (t) => t.status == 'pending',
+          orElse: () => _tasks.first,
+        ),
+      );
+
+      _currentFocusTask = inProgressTask.title;
+      _focusStartTime = DateTime.now();
+    });
+
+    AppLogger.ui(
+      'Focus session started: $_currentFocusTask',
+      screen: 'HomeScreen',
+    );
+  }
+
+  void _handlePauseFocusSession() {
+    setState(() {
+      _currentFocusTask = null;
+      _focusStartTime = null;
+    });
+
+    AppLogger.ui('Focus session paused', screen: 'HomeScreen');
+  }
+
+  void _handleCompleteFocusSession() {
+    // TODO: 작업 완료 처리 및 통계 업데이트
+    setState(() {
+      _currentFocusTask = null;
+      _focusStartTime = null;
+    });
+
+    AppLogger.ui('Focus session completed', screen: 'HomeScreen');
+
+    // 스낵바로 완료 메시지 표시
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Great work! Focus session completed 🎉'),
+        backgroundColor: AppColors.accentGreen,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 태스크 이벤트 핸들러
   // ─────────────────────────────────────────────────────────────────────────
 
   void _handleTaskTap(int index) {
@@ -185,8 +243,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: AppSizes.spaceXXL),
 
-            // 날짜/시계 카드
-            const DateTimeCard(),
+            // 포커스 세션 카드 (DateTimeCard 대체)
+            FocusSessionCard(
+              currentTaskTitle: _currentFocusTask,
+              startTime: _focusStartTime,
+              onStartSession: _handleStartFocusSession,
+              onPause: _handlePauseFocusSession,
+              onComplete: _handleCompleteFocusSession,
+            ),
             const SizedBox(height: AppSizes.spaceXL),
 
             // 프로그레스 섹션
