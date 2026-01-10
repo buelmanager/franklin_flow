@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 import '../../../shared/models/task_model.dart';
+import '../../../services/category_service.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// 태스크 카드 위젯
@@ -17,6 +18,8 @@ class TaskCard extends StatelessWidget {
   final bool isExpanded;
   final VoidCallback onTap;
   final VoidCallback onStatusTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const TaskCard({
     Key? key,
@@ -24,6 +27,8 @@ class TaskCard extends StatelessWidget {
     required this.isExpanded,
     required this.onTap,
     required this.onStatusTap,
+    this.onEdit,
+    this.onDelete,
   }) : super(key: key);
 
   @override
@@ -40,7 +45,7 @@ class TaskCard extends StatelessWidget {
           child: Column(
             children: [
               _buildMainRow(statusColor, statusIcon),
-              if (isExpanded && task.isInProgress) _buildExpandedContent(),
+              if (isExpanded) _buildExpandedContent(),
             ],
           ),
         ),
@@ -88,6 +93,12 @@ class TaskCard extends StatelessWidget {
   }
 
   Widget _buildTaskInfo() {
+    // CategoryService를 통해 카테고리 정보 가져오기
+    final categoryService = CategoryService();
+    final category = categoryService.getCategoryById(task.categoryId);
+    final categoryName = category?.name ?? '기타';
+    final categoryColor = category?.color ?? AppColors.accentBlue;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -106,9 +117,11 @@ class TaskCard extends StatelessWidget {
               color: AppColors.textTertiary,
             ),
             const SizedBox(width: AppSizes.spaceXS),
-            Text(task.time, style: AppTextStyles.caption),
+            // task.timeString 사용 (timeInMinutes를 자동으로 포맷팅)
+            Text(task.timeString, style: AppTextStyles.caption),
             const SizedBox(width: AppSizes.spaceM),
-            BadgeTag(text: task.category, color: AppColors.accentBlue),
+            // 카테고리 이름과 색상 사용
+            BadgeTag(text: categoryName, color: categoryColor),
           ],
         ),
       ],
@@ -119,23 +132,57 @@ class TaskCard extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: AppSizes.spaceL),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Progress', style: AppTextStyles.caption),
-            Text(
-              '${task.progress}%',
-              style: AppTextStyles.numberS.copyWith(
-                color: AppColors.accentOrange,
+
+        // 프로그레스 바 (진행중일 때만)
+        if (task.isInProgress) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Progress', style: AppTextStyles.caption),
+              Text(
+                '${task.progress}%',
+                style: AppTextStyles.numberS.copyWith(
+                  color: AppColors.accentOrange,
+                ),
               ),
-            ),
+            ],
+          ),
+          const SizedBox(height: AppSizes.spaceS),
+          NeumorphicProgressBar(
+            progress: task.progress / 100,
+            color: AppColors.accentOrange,
+            height: AppSizes.progressBarHeightL,
+          ),
+          const SizedBox(height: AppSizes.spaceL),
+        ],
+
+        // 편집/삭제 버튼
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            // 편집 버튼
+            if (onEdit != null)
+              NeumorphicButton.icon(
+                icon: Icons.edit,
+                size: AppSizes.buttonHeightS,
+                iconSize: AppSizes.iconS,
+                iconColor: AppColors.accentBlue,
+                onTap: onEdit,
+                logTag: 'EditTaskBtn',
+              ),
+            const SizedBox(width: AppSizes.spaceM),
+
+            // 삭제 버튼
+            if (onDelete != null)
+              NeumorphicButton.icon(
+                icon: Icons.delete_outline,
+                size: AppSizes.buttonHeightS,
+                iconSize: AppSizes.iconS,
+                iconColor: AppColors.accentRed,
+                onTap: onDelete,
+                logTag: 'DeleteTaskBtn',
+              ),
           ],
-        ),
-        const SizedBox(height: AppSizes.spaceS),
-        NeumorphicProgressBar(
-          progress: task.progress / 100,
-          color: AppColors.accentOrange,
-          height: AppSizes.progressBarHeightL,
         ),
       ],
     );

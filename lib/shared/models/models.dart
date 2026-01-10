@@ -4,3 +4,4 @@
 
 export 'task_model.dart';
 export 'goal_model.dart';
+export 'category_model.dart'; // 추가

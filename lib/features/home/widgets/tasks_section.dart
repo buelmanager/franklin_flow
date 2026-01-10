@@ -18,6 +18,8 @@ class TasksSection extends StatelessWidget {
   final Function(int) onTaskTap;
   final Function(int) onTaskStatusChange;
   final VoidCallback? onAddTap;
+  final Function(int)? onEditTap; // 추가
+  final Function(int)? onDeleteTap; // 추가
 
   const TasksSection({
     Key? key,
@@ -26,6 +28,8 @@ class TasksSection extends StatelessWidget {
     required this.onTaskTap,
     required this.onTaskStatusChange,
     this.onAddTap,
+    this.onEditTap, // 추가
+    this.onDeleteTap, // 추가
   }) : super(key: key);
 
   @override
@@ -51,6 +55,10 @@ class TasksSection extends StatelessWidget {
               isExpanded: selectedTaskIndex == index,
               onTap: () => onTaskTap(index),
               onStatusTap: () => onTaskStatusChange(index),
+              onEdit: onEditTap != null ? () => onEditTap!(index) : null, // 추가
+              onDelete: onDeleteTap != null
+                  ? () => onDeleteTap!(index)
+                  : null, // 추가
             ),
           ),
         ),
