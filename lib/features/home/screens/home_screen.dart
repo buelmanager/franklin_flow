@@ -176,8 +176,10 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             const SizedBox(height: AppSizes.spaceL),
 
-            // 헤더
+            // 헤더 (개선 버전)
             HomeHeader(
+              userName: 'Wade', // TODO: 실제 사용자 이름으로 변경
+              notificationCount: 3, // TODO: 실제 알림 개수로 변경
               onNotificationTap: _handleNotificationTap,
               onProfileTap: _handleProfileTap,
             ),
