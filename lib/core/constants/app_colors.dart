@@ -25,13 +25,13 @@ class AppColors {
   // ─────────────────────────────────────────────────────────────────────────
 
   /// 앱 전체 배경색 (따뜻한 크림/베이지 톤)
-  static const Color background = Color(0xFFE8E6E1);
+  static const Color background = Color(0xFFEFEDE9);
 
   /// 컴포넌트 표면색 (배경과 동일)
-  static const Color surface = Color(0xFFE8E6E1);
+  static const Color surface = Color(0xFFF1EFEA);
 
   /// 카드/컨테이너 배경 (약간 밝은 버전)
-  static const Color cardBackground = Color(0xFFECEAE5);
+  static const Color cardBackground = Color(0xFFF6F4F0);
 
   // ─────────────────────────────────────────────────────────────────────────
   // 뉴모피즘 그림자 컬러
