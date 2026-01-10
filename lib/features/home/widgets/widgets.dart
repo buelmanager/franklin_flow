@@ -7,7 +7,9 @@ export 'date_time_card.dart';
 export 'progress_section.dart';
 export 'task_card.dart';
 export 'tasks_section.dart';
-export 'task_form_dialog.dart'; // 추가
+export 'task_form_dialog.dart';
+export 'task_options_bottom_sheet.dart'; // 추가
 export 'goal_card.dart';
+export 'goal_form_dialog.dart';
 export 'weekly_goals_section.dart';
 export 'bottom_nav_bar.dart';

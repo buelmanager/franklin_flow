@@ -1,10 +1,12 @@
 // lib/core/providers/providers.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../services/goal_service.dart';
 import '../../services/task_service.dart';
 import '../../services/category_service.dart';
 import '../../services/focus_service.dart';
 import '../../services/local_storage_service.dart';
+import '../../shared/models/goal_model.dart';
 import '../../shared/models/task_model.dart';
 import '../../shared/models/category_model.dart';
 import '../../shared/models/focus_session_model.dart';
@@ -255,4 +257,110 @@ final todaySessionsProvider = Provider<int>((ref) {
 final todayFocusMinutesProvider = Provider<int>((ref) {
   final focusService = ref.watch(focusServiceProvider);
   return focusService.getTodayFocusMinutes();
+});
+
+/// GoalService Provider
+final goalServiceProvider = Provider<GoalService>((ref) {
+  return GoalService();
+});
+
+/// Goal 리스트 Provider (반응형)
+final goalListProvider = StateNotifierProvider<GoalListNotifier, List<Goal>>((
+  ref,
+) {
+  final goalService = ref.watch(goalServiceProvider);
+  return GoalListNotifier(goalService);
+});
+
+/// Goal 리스트 Notifier
+class GoalListNotifier extends StateNotifier<List<Goal>> {
+  final GoalService _goalService;
+
+  GoalListNotifier(this._goalService) : super(_goalService.getGoals());
+
+  /// 리스트 새로고침
+  void refresh() {
+    state = _goalService.getGoals();
+  }
+
+  /// Goal 추가
+  Future<Goal> addGoal({
+    required String emoji,
+    required String title,
+    required int total,
+    required int colorValue,
+    int current = 0,
+  }) async {
+    final goal = await _goalService.addGoal(
+      emoji: emoji,
+      title: title,
+      total: total,
+      colorValue: colorValue,
+      current: current,
+    );
+    refresh();
+    return goal;
+  }
+
+  /// Goal 업데이트
+  Future<bool> updateGoal(Goal goal) async {
+    final success = await _goalService.updateGoal(goal);
+    if (success) refresh();
+    return success;
+  }
+
+  /// Goal 삭제
+  Future<bool> deleteGoal(int goalId) async {
+    final success = await _goalService.deleteGoal(goalId);
+    if (success) refresh();
+    return success;
+  }
+
+  /// Goal 진행도 증가
+  Future<bool> incrementGoal(int goalId) async {
+    final success = await _goalService.incrementGoal(goalId);
+    if (success) refresh();
+    return success;
+  }
+
+  /// Goal 진행도 감소
+  Future<bool> decrementGoal(int goalId) async {
+    final success = await _goalService.decrementGoal(goalId);
+    if (success) refresh();
+    return success;
+  }
+
+  /// Goal 진행도 직접 설정
+  Future<bool> setGoalProgress(int goalId, int current) async {
+    final success = await _goalService.setGoalProgress(goalId, current);
+    if (success) refresh();
+    return success;
+  }
+
+  /// 주간 목표 초기화
+  Future<void> resetWeeklyGoals() async {
+    await _goalService.resetWeeklyGoals();
+    refresh();
+  }
+}
+
+/// 이번 주 목표만
+final currentWeekGoalsProvider = Provider<List<Goal>>((ref) {
+  final goals = ref.watch(goalListProvider);
+  return goals.where((g) => g.isCurrentWeek).toList();
+});
+
+/// 완료된 목표
+final completedGoalsProvider = Provider<List<Goal>>((ref) {
+  final goals = ref.watch(goalListProvider);
+  return goals.where((g) => g.isCompleted).toList();
+});
+
+/// 이번 주 완료율
+final weekCompletionRateProvider = Provider<int>((ref) {
+  final weekGoals = ref.watch(currentWeekGoalsProvider);
+  if (weekGoals.isEmpty) return 0;
+
+  final completed = weekGoals.where((g) => g.isCompleted).length;
+  return ((completed / weekGoals.length) * 100).round();
 });
