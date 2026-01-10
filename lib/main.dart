@@ -2,6 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // 추가
+import 'package:franklin_flow/shared/models/focus_session_model.dart';
+import 'package:hive/hive.dart';
 
 // Core
 import 'core/core.dart';
@@ -34,6 +37,7 @@ void main() async {
     AppLogger.i('Hive 초기화 시작...', tag: 'Main');
     await LocalStorageService.init();
     AppLogger.i('Hive 초기화 완료', tag: 'Main');
+    Hive.registerAdapter(FocusSessionAdapter());
 
     // Box 열기
     AppLogger.i('Storage Box 열기 시작...', tag: 'Main');
@@ -43,7 +47,8 @@ void main() async {
     AppLogger.e('Hive 초기화 실패', tag: 'Main', error: e, stackTrace: stackTrace);
   }
 
-  runApp(const FranklinFlowApp());
+  // ProviderScope로 앱 전체 감싸기 (추가)
+  runApp(const ProviderScope(child: FranklinFlowApp()));
 }
 
 /// ═══════════════════════════════════════════════════════════════════════════

@@ -2,46 +2,24 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/core.dart';
+import '../../../shared/models/focus_session_model.dart';
+import '../../../shared/models/task_model.dart';
+import '../../../services/category_service.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
-/// 포커스 세션 카드 위젯
-/// ═══════════════════════════════════════════════════════════════════════════
-///
-/// 진행 중인 작업 + 타이머 표시
-/// 작업이 없으면 "Start your day" 버튼 표시
+/// 포커스 세션 카드 위젯 (Riverpod 적용)
 /// ═══════════════════════════════════════════════════════════════════════════
 
-class FocusSessionCard extends StatefulWidget {
-  /// 현재 작업 중인 태스크 제목
-  final String? currentTaskTitle;
-
-  /// 시작 시간 (null이면 작업 중이 아님)
-  final DateTime? startTime;
-
-  /// 포커스 세션 시작 콜백
-  final VoidCallback? onStartSession;
-
-  /// 일시정지 콜백
-  final VoidCallback? onPause;
-
-  /// 완료 콜백
-  final VoidCallback? onComplete;
-
-  const FocusSessionCard({
-    Key? key,
-    this.currentTaskTitle,
-    this.startTime,
-    this.onStartSession,
-    this.onPause,
-    this.onComplete,
-  }) : super(key: key);
+class FocusSessionCard extends ConsumerStatefulWidget {
+  const FocusSessionCard({Key? key}) : super(key: key);
 
   @override
-  State<FocusSessionCard> createState() => _FocusSessionCardState();
+  ConsumerState<FocusSessionCard> createState() => _FocusSessionCardState();
 }
 
-class _FocusSessionCardState extends State<FocusSessionCard> {
+class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
   Timer? _timer;
   Duration _elapsed = Duration.zero;
 
@@ -53,14 +31,6 @@ class _FocusSessionCardState extends State<FocusSessionCard> {
   }
 
   @override
-  void didUpdateWidget(FocusSessionCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.startTime != oldWidget.startTime) {
-      _startTimer();
-    }
-  }
-
-  @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
@@ -69,39 +39,131 @@ class _FocusSessionCardState extends State<FocusSessionCard> {
   void _startTimer() {
     _timer?.cancel();
 
-    if (widget.startTime != null) {
-      // 타이머 시작
-      _elapsed = DateTime.now().difference(widget.startTime!);
+    final session = ref.read(focusSessionProvider);
+    if (session != null && session.isActive) {
+      _elapsed = DateTime.now().difference(session.startTime);
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (mounted) {
-          setState(() {
-            _elapsed = DateTime.now().difference(widget.startTime!);
-          });
+          final currentSession = ref.read(focusSessionProvider);
+          if (currentSession != null) {
+            setState(() {
+              _elapsed =
+                  DateTime.now().difference(currentSession.startTime) -
+                  Duration(minutes: currentSession.totalPausedMinutes);
+            });
+          }
         }
       });
-      AppLogger.d('Timer started', tag: 'FocusSessionCard');
     } else {
       _elapsed = Duration.zero;
-      AppLogger.d('No active session', tag: 'FocusSessionCard');
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // 이벤트 핸들러
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Future<void> _handleStartSession(Task task) async {
+    await ref.read(focusSessionProvider.notifier).startSession(task);
+    _startTimer();
+
+    AppLogger.ui(
+      'Focus session started: ${task.title}',
+      screen: 'FocusSessionCard',
+    );
+  }
+
+  Future<void> _handlePause() async {
+    await ref.read(focusSessionProvider.notifier).pauseSession();
+    _timer?.cancel();
+
+    AppLogger.ui('Focus session paused', screen: 'FocusSessionCard');
+  }
+
+  Future<void> _handleResume() async {
+    await ref.read(focusSessionProvider.notifier).resumeSession();
+    _startTimer();
+
+    AppLogger.ui('Focus session resumed', screen: 'FocusSessionCard');
+  }
+
+  Future<void> _handleComplete() async {
+    await ref.read(focusSessionProvider.notifier).completeSession();
+    _timer?.cancel();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Great work! Focus session completed 🎉'),
+          backgroundColor: AppColors.accentGreen,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+
+    AppLogger.ui('Focus session completed', screen: 'FocusSessionCard');
+  }
+
+  Future<void> _handleCancel() async {
+    final confirmed = await NeumorphicDialog.showConfirm(
+      context: context,
+      title: '세션 취소',
+      message: '진행 중인 세션을 취소하시겠습니까?',
+      confirmText: '취소',
+      cancelText: '계속하기',
+    );
+
+    if (confirmed == true) {
+      await ref.read(focusSessionProvider.notifier).cancelSession();
+      _timer?.cancel();
+
+      AppLogger.ui('Focus session cancelled', screen: 'FocusSessionCard');
+    }
+  }
+
+  void _showTaskSelector() {
+    _showTaskBottomSheet();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // UI 빌드
+  // ─────────────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    final bool hasActiveSession = widget.startTime != null;
+    // Provider에서 현재 세션 구독
+    final session = ref.watch(focusSessionProvider);
+    final hasSession = session != null;
+
+    // 세션 상태 변경 시 타이머 재시작
+    ref.listen<FocusSession?>(focusSessionProvider, (previous, next) {
+      if (next != null && next.isActive) {
+        _startTimer();
+      } else {
+        _timer?.cancel();
+      }
+    });
 
     return NeumorphicContainer(
       padding: const EdgeInsets.all(AppSizes.paddingXL),
-      child: hasActiveSession ? _buildActiveSession() : _buildStartPrompt(),
+      child: hasSession ? _buildActiveSession(session) : _buildTaskSelector(),
     );
   }
 
   /// 활성 세션 UI
-  Widget _buildActiveSession() {
+  Widget _buildActiveSession(session) {
+    final tasks = ref.watch(taskListProvider);
+    final task = tasks.cast<Task?>().firstWhere(
+      (t) => t?.id == session.taskId,
+      orElse: () => null,
+    );
+
+    final isPaused = session.isPaused;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 헤더: 아이콘 + 제목
+        // 헤더
         Row(
           children: [
             Container(
@@ -111,7 +173,9 @@ class _FocusSessionCardState extends State<FocusSessionCard> {
                 borderRadius: AppSizes.radiusM,
               ),
               child: Icon(
-                Icons.play_circle_outline,
+                isPaused
+                    ? Icons.pause_circle_outline
+                    : Icons.play_circle_outline,
                 size: AppSizes.iconM,
                 color: AppColors.accentBlue,
               ),
@@ -122,14 +186,14 @@ class _FocusSessionCardState extends State<FocusSessionCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Working on',
+                    isPaused ? 'Paused' : 'Focus Mode',
                     style: AppTextStyles.caption.copyWith(
                       color: AppColors.textTertiary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    widget.currentTaskTitle ?? 'Focus Session',
+                    session.taskTitle,
                     style: AppTextStyles.heading4,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -141,58 +205,63 @@ class _FocusSessionCardState extends State<FocusSessionCard> {
         ),
         const SizedBox(height: AppSizes.spaceXL),
 
-        // 타이머 표시
+        // 타이머
         Center(
           child: Text(
             _formatDuration(_elapsed),
             style: AppTextStyles.displayNumber.copyWith(
               fontSize: 48,
-              color: AppColors.accentBlue,
+              color: isPaused ? AppColors.textTertiary : AppColors.accentBlue,
             ),
           ),
         ),
         const SizedBox(height: AppSizes.spaceS),
-        Center(child: Text('Focus Mode', style: AppTextStyles.caption)),
+        Center(
+          child: Text(
+            '목표: ${session.targetMinutes}분',
+            style: AppTextStyles.caption,
+          ),
+        ),
         const SizedBox(height: AppSizes.spaceXL),
 
-        // 프로그레스 바 (25분 기준 - 포모도로)
-        _buildProgressBar(),
+        // 프로그레스 바
+        _buildProgressBar(session),
         const SizedBox(height: AppSizes.spaceXL),
 
-        // 액션 버튼들
+        // 버튼들
         Row(
           children: [
+            // 일시정지/재개
             Expanded(
               child: NeumorphicButton(
                 height: AppSizes.buttonHeightM,
                 borderRadius: AppSizes.radiusM,
-                onTap: () {
-                  AppLogger.ui('Pause tapped', screen: 'FocusSessionCard');
-                  widget.onPause?.call();
-                },
+                onTap: isPaused ? _handleResume : _handlePause,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.pause,
+                      isPaused ? Icons.play_arrow : Icons.pause,
                       size: AppSizes.iconS,
                       color: AppColors.textSecondary,
                     ),
                     const SizedBox(width: AppSizes.spaceS),
-                    Text('Pause', style: AppTextStyles.button),
+                    Text(
+                      isPaused ? 'Resume' : 'Pause',
+                      style: AppTextStyles.button,
+                    ),
                   ],
                 ),
               ),
             ),
             const SizedBox(width: AppSizes.spaceM),
+
+            // 완료
             Expanded(
               child: NeumorphicButton(
                 height: AppSizes.buttonHeightM,
                 borderRadius: AppSizes.radiusM,
-                onTap: () {
-                  AppLogger.ui('Complete tapped', screen: 'FocusSessionCard');
-                  widget.onComplete?.call();
-                },
+                onTap: _handleComplete,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -214,12 +283,30 @@ class _FocusSessionCardState extends State<FocusSessionCard> {
             ),
           ],
         ),
+        const SizedBox(height: AppSizes.spaceM),
+
+        // 취소 버튼
+        SizedBox(
+          width: double.infinity,
+          child: NeumorphicButton(
+            height: AppSizes.buttonHeightS,
+            borderRadius: AppSizes.radiusM,
+            onTap: _handleCancel,
+            child: Text(
+              'Cancel Session',
+              style: AppTextStyles.labelL.copyWith(color: AppColors.accentRed),
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  /// 시작 프롬프트 UI (작업이 없을 때)
-  Widget _buildStartPrompt() {
+  /// Task 선택 UI
+  Widget _buildTaskSelector() {
+    final todaySessions = ref.watch(todaySessionsProvider);
+    final todayMinutes = ref.watch(todayFocusMinutesProvider);
+
     return Column(
       children: [
         // 아이콘
@@ -243,10 +330,53 @@ class _FocusSessionCardState extends State<FocusSessionCard> {
         ),
         const SizedBox(height: AppSizes.spaceS),
         Text(
-          'Start a focus session to track your productivity',
+          'Select a task to start your focus session',
           style: AppTextStyles.bodyS.copyWith(color: AppColors.textSecondary),
           textAlign: TextAlign.center,
         ),
+        const SizedBox(height: AppSizes.spaceXL),
+
+        // 오늘 통계
+        if (todaySessions > 0 || todayMinutes > 0)
+          Container(
+            padding: const EdgeInsets.all(AppSizes.paddingL),
+            decoration: BoxDecoration(
+              color: AppColors.accentGreen.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppSizes.radiusM),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Column(
+                  children: [
+                    Text(
+                      '$todaySessions',
+                      style: AppTextStyles.numberM.copyWith(
+                        color: AppColors.accentGreen,
+                      ),
+                    ),
+                    Text('Sessions', style: AppTextStyles.caption),
+                  ],
+                ),
+                Container(
+                  width: 1,
+                  height: 30,
+                  color: AppColors.textTertiary.withOpacity(0.3),
+                ),
+                Column(
+                  children: [
+                    Text(
+                      '${todayMinutes}m',
+                      style: AppTextStyles.numberM.copyWith(
+                        color: AppColors.accentGreen,
+                      ),
+                    ),
+                    Text('Focus Time', style: AppTextStyles.caption),
+                  ],
+                ),
+              ],
+            ),
+          ),
         const SizedBox(height: AppSizes.spaceXL),
 
         // 시작 버튼
@@ -254,10 +384,7 @@ class _FocusSessionCardState extends State<FocusSessionCard> {
           width: double.infinity,
           height: AppSizes.buttonHeightL,
           borderRadius: AppSizes.radiusM,
-          onTap: () {
-            AppLogger.ui('Start session tapped', screen: 'FocusSessionCard');
-            widget.onStartSession?.call();
-          },
+          onTap: _showTaskSelector,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -268,7 +395,7 @@ class _FocusSessionCardState extends State<FocusSessionCard> {
               ),
               const SizedBox(width: AppSizes.spaceM),
               Text(
-                'Start Focus Session',
+                'Select Task & Start',
                 style: AppTextStyles.button.copyWith(
                   fontSize: 16,
                   color: AppColors.accentBlue,
@@ -281,10 +408,8 @@ class _FocusSessionCardState extends State<FocusSessionCard> {
     );
   }
 
-  /// 프로그레스 바 (25분 포모도로 기준)
-  Widget _buildProgressBar() {
-    const pomodoroMinutes = 25;
-    final progress = _elapsed.inSeconds / (pomodoroMinutes * 60);
+  Widget _buildProgressBar(session) {
+    final progress = _elapsed.inSeconds / (session.targetMinutes * 60);
 
     return Column(
       children: [
@@ -310,7 +435,6 @@ class _FocusSessionCardState extends State<FocusSessionCard> {
     );
   }
 
-  /// Duration을 "HH:MM:SS" 형식으로 포맷
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
@@ -324,5 +448,176 @@ class _FocusSessionCardState extends State<FocusSessionCard> {
       return '${minutes.toString().padLeft(2, '0')}:'
           '${seconds.toString().padLeft(2, '0')}';
     }
+  }
+
+  void _showTaskBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => _TaskSelectorBottomSheet(
+        onTaskSelect: (task) {
+          Navigator.of(context).pop();
+          _handleStartSession(task);
+        },
+      ),
+    );
+  }
+}
+
+/// Task 선택 BottomSheet
+class _TaskSelectorBottomSheet extends ConsumerWidget {
+  final Function(Task) onTaskSelect;
+
+  const _TaskSelectorBottomSheet({Key? key, required this.onTaskSelect})
+    : super(key: key);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasks = ref
+        .watch(taskListProvider)
+        .where((t) => !t.isCompleted)
+        .toList();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppSizes.radiusXXL),
+          topRight: Radius.circular(AppSizes.radiusXXL),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 핸들
+          Container(
+            margin: const EdgeInsets.only(top: AppSizes.paddingM),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.textTertiary.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // 헤더
+          Padding(
+            padding: const EdgeInsets.all(AppSizes.paddingXL),
+            child: Text('Select a Task', style: AppTextStyles.heading3),
+          ),
+
+          // Task 리스트
+          if (tasks.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingXL),
+              child: Text(
+                'No tasks available.\nCreate a task first!',
+                style: AppTextStyles.bodyM.copyWith(
+                  color: AppColors.textTertiary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            )
+          else
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.5,
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.paddingL,
+                  vertical: AppSizes.paddingS,
+                ),
+                itemCount: tasks.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: AppSizes.spaceS),
+                itemBuilder: (context, index) {
+                  final task = tasks[index];
+                  return _buildTaskItem(context, ref, task);
+                },
+              ),
+            ),
+
+          const SizedBox(height: AppSizes.paddingXL),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTaskItem(BuildContext context, WidgetRef ref, Task task) {
+    final categoryService = CategoryService();
+    final category = categoryService.getCategoryById(task.categoryId);
+
+    return GestureDetector(
+      onTap: () => onTaskSelect(task),
+      child: NeumorphicContainer(
+        padding: const EdgeInsets.all(AppSizes.paddingL),
+        child: Row(
+          children: [
+            // 카테고리 아이콘
+            if (category != null)
+              Container(
+                width: AppSizes.avatarS,
+                height: AppSizes.avatarS,
+                decoration: BoxDecoration(
+                  color: category.color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusS),
+                ),
+                child: Icon(
+                  category.icon,
+                  size: AppSizes.iconS,
+                  color: category.color,
+                ),
+              ),
+            const SizedBox(width: AppSizes.spaceM),
+
+            // Task 정보
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.title,
+                    style: AppTextStyles.bodyM.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.spaceXS),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: AppSizes.iconXS,
+                        color: AppColors.textTertiary,
+                      ),
+                      const SizedBox(width: AppSizes.spaceXS),
+                      Text(task.timeString, style: AppTextStyles.caption),
+                      if (task.progress > 0) ...[
+                        const SizedBox(width: AppSizes.spaceM),
+                        Text(
+                          '${task.progress}% done',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.accentGreen,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // 화살표
+            Icon(
+              Icons.arrow_forward_ios,
+              size: AppSizes.iconS,
+              color: AppColors.textTertiary,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
