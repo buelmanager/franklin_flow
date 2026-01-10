@@ -3,6 +3,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../core/utils/app_logger.dart';
 import '../shared/models/focus_session_model.dart';
+import '../shared/models/goal_model.dart';
 import '../shared/models/task_model.dart';
 import '../shared/models/category_model.dart';
 
@@ -28,11 +29,13 @@ class LocalStorageService {
   static const String _taskBoxName = 'tasks';
   static const String _categoryBoxName = 'categories';
   static const String _settingsBoxName = 'settings';
+  static const String _goalBoxName = 'goals';
 
   // Box 인스턴스
   late Box<Task> _taskBox;
   late Box<Category> _categoryBox;
   late Box _settingsBox;
+  late Box<Goal> _goalBox;
 
   bool _isInitialized = false;
 
@@ -57,6 +60,7 @@ class LocalStorageService {
       // Adapter 등록
       Hive.registerAdapter(TaskAdapter());
       Hive.registerAdapter(CategoryAdapter());
+      Hive.registerAdapter(GoalAdapter());
 
       AppLogger.i('Hive initialized successfully', tag: 'LocalStorageService');
     } catch (e, stackTrace) {
@@ -84,6 +88,7 @@ class LocalStorageService {
       _categoryBox = await Hive.openBox<Category>(_categoryBoxName);
       _settingsBox = await Hive.openBox(_settingsBoxName);
       _focusSessionBox = await Hive.openBox<FocusSession>(_focusSessionBoxName);
+      _goalBox = await Hive.openBox<Goal>(_goalBoxName);
 
       _isInitialized = true;
 
@@ -227,6 +232,8 @@ class LocalStorageService {
     await _taskBox.close();
     await _categoryBox.close();
     await _settingsBox.close();
+    await _goalBox.close();
+
     _isInitialized = false;
     AppLogger.i('All boxes closed', tag: 'LocalStorageService');
   }
@@ -237,6 +244,8 @@ class LocalStorageService {
     await _taskBox.clear();
     await _categoryBox.clear();
     await _settingsBox.clear();
+    await _goalBox.clear();
+
     await _initializeDefaultCategories();
     AppLogger.i('All data cleared and reset', tag: 'LocalStorageService');
   }
@@ -278,6 +287,44 @@ class LocalStorageService {
     final maxId = _focusSessionBox.keys.cast<int>().reduce(
       (a, b) => a > b ? a : b,
     );
+    return maxId + 1;
+  }
+
+  /// 모든 목표 가져오기
+  List<Goal> getGoals() {
+    _checkInitialized();
+    return _goalBox.values.toList();
+  }
+
+  /// 목표 저장
+  Future<void> saveGoal(Goal goal) async {
+    _checkInitialized();
+    await _goalBox.put(goal.id, goal);
+    AppLogger.d(
+      'Goal saved: ${goal.title} (ID: ${goal.id})',
+      tag: 'LocalStorageService',
+    );
+  }
+
+  /// 목표 삭제
+  Future<void> deleteGoal(int goalId) async {
+    _checkInitialized();
+    await _goalBox.delete(goalId);
+    AppLogger.d('Goal deleted: ID $goalId', tag: 'LocalStorageService');
+  }
+
+  /// 모든 목표 삭제
+  Future<void> clearAllGoals() async {
+    _checkInitialized();
+    await _goalBox.clear();
+    AppLogger.i('All goals cleared', tag: 'LocalStorageService');
+  }
+
+  /// 다음 목표 ID 생성
+  int getNextGoalId() {
+    _checkInitialized();
+    if (_goalBox.isEmpty) return 1;
+    final maxId = _goalBox.keys.cast<int>().reduce((a, b) => a > b ? a : b);
     return maxId + 1;
   }
 }

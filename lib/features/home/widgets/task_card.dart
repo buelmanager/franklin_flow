@@ -11,6 +11,7 @@ import '../../../services/category_service.dart';
 ///
 /// 개별 태스크를 표시하는 카드
 /// 탭하여 확장, 상태 버튼으로 상태 변경
+/// 프로그레스 바 클릭으로 진행도 설정
 /// ═══════════════════════════════════════════════════════════════════════════
 
 class TaskCard extends StatelessWidget {
@@ -20,6 +21,7 @@ class TaskCard extends StatelessWidget {
   final VoidCallback onStatusTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final Function(int)? onProgressTap; // 진행도 설정 콜백 추가
 
   const TaskCard({
     Key? key,
@@ -29,6 +31,7 @@ class TaskCard extends StatelessWidget {
     required this.onStatusTap,
     this.onEdit,
     this.onDelete,
+    this.onProgressTap, // 추가
   }) : super(key: key);
 
   @override
@@ -45,7 +48,7 @@ class TaskCard extends StatelessWidget {
           child: Column(
             children: [
               _buildMainRow(statusColor, statusIcon),
-              if (isExpanded) _buildExpandedContent(),
+              if (isExpanded) _buildExpandedContent(context),
             ],
           ),
         ),
@@ -117,10 +120,8 @@ class TaskCard extends StatelessWidget {
               color: AppColors.textTertiary,
             ),
             const SizedBox(width: AppSizes.spaceXS),
-            // task.timeString 사용 (timeInMinutes를 자동으로 포맷팅)
             Text(task.timeString, style: AppTextStyles.caption),
             const SizedBox(width: AppSizes.spaceM),
-            // 카테고리 이름과 색상 사용
             BadgeTag(text: categoryName, color: categoryColor),
           ],
         ),
@@ -128,30 +129,49 @@ class TaskCard extends StatelessWidget {
     );
   }
 
-  Widget _buildExpandedContent() {
+  Widget _buildExpandedContent(BuildContext context) {
     return Column(
       children: [
         const SizedBox(height: AppSizes.spaceL),
 
-        // 프로그레스 바 (진행중일 때만)
+        // 프로그레스 바 (진행중일 때만, 클릭 가능)
         if (task.isInProgress) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Progress', style: AppTextStyles.caption),
-              Text(
-                '${task.progress}%',
-                style: AppTextStyles.numberS.copyWith(
-                  color: AppColors.accentOrange,
+          GestureDetector(
+            onTap: onProgressTap != null
+                ? () => _showProgressDialog(context)
+                : null,
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Progress', style: AppTextStyles.caption),
+                    Row(
+                      children: [
+                        Text(
+                          '${task.progress}%',
+                          style: AppTextStyles.numberS.copyWith(
+                            color: AppColors.accentOrange,
+                          ),
+                        ),
+                        const SizedBox(width: AppSizes.spaceXS),
+                        Icon(
+                          Icons.edit,
+                          size: AppSizes.iconXS,
+                          color: AppColors.accentOrange,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSizes.spaceS),
-          NeumorphicProgressBar(
-            progress: task.progress / 100,
-            color: AppColors.accentOrange,
-            height: AppSizes.progressBarHeightL,
+                const SizedBox(height: AppSizes.spaceS),
+                NeumorphicProgressBar(
+                  progress: task.progress / 100,
+                  color: AppColors.accentOrange,
+                  height: AppSizes.progressBarHeightL,
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: AppSizes.spaceL),
         ],
@@ -183,6 +203,99 @@ class TaskCard extends StatelessWidget {
                 logTag: 'DeleteTaskBtn',
               ),
           ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showProgressDialog(BuildContext context) async {
+    int selectedProgress = task.progress;
+
+    await NeumorphicDialog.show(
+      context: context,
+      title: '진행도 설정',
+      content: StatefulBuilder(
+        builder: (context, setState) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 설명
+              Text(
+                '${task.title}의 진행도를 설정하세요',
+                style: AppTextStyles.bodyM.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSizes.spaceXL),
+
+              // 슬라이더
+              SliderTheme(
+                data: SliderThemeData(
+                  activeTrackColor: AppColors.accentOrange,
+                  inactiveTrackColor: AppColors.textTertiary.withOpacity(0.3),
+                  thumbColor: AppColors.accentOrange,
+                  overlayColor: AppColors.accentOrange.withOpacity(0.2),
+                  trackHeight: 8,
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 12,
+                  ),
+                ),
+                child: Slider(
+                  value: selectedProgress.toDouble(),
+                  min: 0,
+                  max: 100,
+                  divisions: 20,
+                  label: '$selectedProgress%',
+                  onChanged: (value) {
+                    setState(() {
+                      selectedProgress = value.round();
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(height: AppSizes.spaceM),
+
+              // 진행도 표시
+              Text(
+                '$selectedProgress%',
+                style: AppTextStyles.displayNumber.copyWith(
+                  fontSize: 42,
+                  color: AppColors.accentOrange,
+                ),
+              ),
+
+              // 프로그레스 바 미리보기
+              const SizedBox(height: AppSizes.spaceL),
+              NeumorphicProgressBar(
+                progress: selectedProgress / 100,
+                color: AppColors.accentOrange,
+                height: AppSizes.progressBarHeightL,
+              ),
+            ],
+          );
+        },
+      ),
+      actions: [
+        NeumorphicButton.text(
+          text: AppStrings.btnCancel,
+          onTap: () => Navigator.of(context).pop(),
+        ),
+        const SizedBox(width: AppSizes.spaceM),
+        NeumorphicButton.text(
+          text: AppStrings.btnConfirm,
+          textStyle: AppTextStyles.button.copyWith(
+            color: AppColors.accentOrange,
+          ),
+          onTap: () {
+            onProgressTap?.call(selectedProgress);
+            Navigator.of(context).pop();
+
+            AppLogger.ui(
+              'Progress set: ${task.title} -> $selectedProgress%',
+              screen: 'TaskCard',
+            );
+          },
         ),
       ],
     );

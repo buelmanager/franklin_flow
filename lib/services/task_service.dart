@@ -134,7 +134,10 @@ class TaskService {
         task.completedAt = DateTime.now();
         break;
       case 'in-progress':
-        if (task.progress == 0) task.progress = 30;
+        // pending에서 in-progress로 변경 시 진행도를 0으로 초기화
+        if (task.progress == 0) {
+          task.progress = 0; // 명시적으로 0으로 설정
+        }
         break;
       case 'pending':
         task.progress = 0;
@@ -145,7 +148,7 @@ class TaskService {
     await _storage.saveTask(task);
 
     AppLogger.i(
-      'Task status changed: ${task.title} -> $newStatus',
+      'Task status changed: ${task.title} -> $newStatus (progress: ${task.progress}%)',
       tag: 'TaskService',
     );
 
@@ -165,6 +168,9 @@ class TaskService {
       task.completedAt = DateTime.now();
     } else if (progress > 0 && progress < 100 && !task.isInProgress) {
       task.status = 'in-progress';
+    } else if (progress == 0 && task.isInProgress) {
+      // 진행도를 0으로 되돌릴 때는 상태를 변경하지 않음
+      // (사용자가 의도적으로 진행도만 초기화하는 경우)
     }
 
     await _storage.saveTask(task);

@@ -27,9 +27,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedTaskIndex = -1;
 
-  // 주간 목표 데이터 (나중에 Provider로 변경 가능)
-  late final List<Goal> _goals;
-
   @override
   void initState() {
     super.initState();
@@ -39,37 +36,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     Future.microtask(() {
       ref.read(focusSessionProvider.notifier).restoreSession();
     });
-
-    _goals = [
-      Goal(
-        emoji: '🏃',
-        title: AppStrings.goalWorkout,
-        current: 2,
-        total: 3,
-        color: AppColors.accentPink,
-      ),
-      Goal(
-        emoji: '📚',
-        title: AppStrings.goalReading,
-        current: 5,
-        total: 10,
-        color: AppColors.accentPurple,
-      ),
-      Goal(
-        emoji: '💧',
-        title: AppStrings.goalWater,
-        current: 6,
-        total: 8,
-        color: AppColors.accentBlue,
-      ),
-      Goal(
-        emoji: '🧘',
-        title: AppStrings.goalMeditation,
-        current: 3,
-        total: 7,
-        color: AppColors.accentGreen,
-      ),
-    ];
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -109,6 +75,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  Future<void> _handleProgressChange(int index, int newProgress) async {
+    final tasks = ref.read(taskListProvider);
+    final task = tasks[index];
+
+    await ref
+        .read(taskListProvider.notifier)
+        .updateTaskProgress(task.id, newProgress);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('진행도가 변경되었습니다: ${task.title} → $newProgress%'),
+          backgroundColor: AppColors.accentOrange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+
+    AppLogger.ui(
+      'Task progress changed: ${task.title} -> $newProgress%',
+      screen: 'HomeScreen',
+    );
+  }
+
   void _handleNotificationTap() {
     AppLogger.ui('Notification tapped', screen: 'HomeScreen');
   }
@@ -123,8 +113,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     TaskFormDialog.show(
       context: context,
       onSaved: (task) {
-        // TaskFormDialog 내부에서 이미 Provider를 통해 추가되므로
-        // 여기서는 피드백만 제공
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('태스크가 추가되었습니다: ${task.title}'),
@@ -192,10 +180,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
-  void _handleGoalTap(int index) {
-    AppLogger.ui('Goal tapped: ${_goals[index].title}', screen: 'HomeScreen');
-  }
-
   // ─────────────────────────────────────────────────────────────────────────
   // 빌드
   // ─────────────────────────────────────────────────────────────────────────
@@ -239,7 +223,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: AppSizes.spaceXL),
 
-            // Tasks Section (자동 갱신됨)
+            // Tasks Section (자동 갱신됨 + 진행도 변경)
             TasksSection(
               tasks: tasks,
               selectedTaskIndex: _selectedTaskIndex,
@@ -248,10 +232,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onAddTap: _handleAddTaskTap,
               onEditTap: _handleEditTaskTap,
               onDeleteTap: _handleDeleteTaskTap,
+              onProgressChange: _handleProgressChange, // 추가
             ),
             const SizedBox(height: AppSizes.spaceXL),
 
-            WeeklyGoalsSection(goals: _goals, onGoalTap: _handleGoalTap),
+            const WeeklyGoalsSection(),
 
             const SizedBox(height: 100),
           ],
