@@ -478,6 +478,7 @@ class _TaskSelectorBottomSheet extends ConsumerWidget {
         .toList();
 
     return Container(
+      width: MediaQuery.of(context).size.width * 0.9,
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: const BorderRadius.only(
@@ -594,7 +595,7 @@ class _TaskSelectorBottomSheet extends ConsumerWidget {
               ),
             ),
 
-          const SizedBox(height: AppSizes.paddingXL),
+          //const SizedBox(height: AppSizes.paddingXL),
         ],
       ),
     );
