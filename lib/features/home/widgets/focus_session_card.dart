@@ -88,13 +88,14 @@ class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
   }
 
   Future<void> _handleComplete() async {
+    // 목표 시간 체크 없이 바로 완료 처리
     await ref.read(focusSessionProvider.notifier).completeSession();
     _timer?.cancel();
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Great work! Focus session completed 🎉'),
+          content: Text('수고하셨습니다! 집중 세션이 완료되었습니다 🎉'),
           backgroundColor: AppColors.accentGreen,
           duration: Duration(seconds: 2),
         ),
@@ -186,7 +187,7 @@ class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isPaused ? 'Paused' : 'Focus Mode',
+                    isPaused ? '일시정지' : '집중 모드',
                     style: AppTextStyles.caption.copyWith(
                       color: AppColors.textTertiary,
                     ),
@@ -246,17 +247,14 @@ class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
                       color: AppColors.textSecondary,
                     ),
                     const SizedBox(width: AppSizes.spaceS),
-                    Text(
-                      isPaused ? 'Resume' : 'Pause',
-                      style: AppTextStyles.button,
-                    ),
+                    Text(isPaused ? '재개' : '일시정지', style: AppTextStyles.button),
                   ],
                 ),
               ),
             ),
             const SizedBox(width: AppSizes.spaceM),
 
-            // 완료
+            // 완료 (목표 시간 제약 없음)
             Expanded(
               child: NeumorphicButton(
                 height: AppSizes.buttonHeightM,
@@ -272,7 +270,7 @@ class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
                     ),
                     const SizedBox(width: AppSizes.spaceS),
                     Text(
-                      'Complete',
+                      '완료',
                       style: AppTextStyles.button.copyWith(
                         color: AppColors.accentGreen,
                       ),
@@ -293,7 +291,7 @@ class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
             borderRadius: AppSizes.radiusM,
             onTap: _handleCancel,
             child: Text(
-              'Cancel Session',
+              '세션 취소',
               style: AppTextStyles.labelL.copyWith(color: AppColors.accentRed),
             ),
           ),
@@ -302,7 +300,7 @@ class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
     );
   }
 
-  /// Task 선택 UI
+  /// Task 선택 UI (한글화)
   Widget _buildTaskSelector() {
     final todaySessions = ref.watch(todaySessionsProvider);
     final todayMinutes = ref.watch(todayFocusMinutesProvider);
@@ -322,21 +320,21 @@ class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
         ),
         const SizedBox(height: AppSizes.spaceXL),
 
-        // 메시지
+        // 메시지 (한글화)
         Text(
-          'Ready to Focus?',
+          '집중할 준비가 되셨나요?',
           style: AppTextStyles.heading3,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSizes.spaceS),
         Text(
-          'Select a task to start your focus session',
+          '태스크를 선택하고 집중 세션을 시작하세요',
           style: AppTextStyles.bodyS.copyWith(color: AppColors.textSecondary),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSizes.spaceXL),
 
-        // 오늘 통계
+        // 오늘 통계 (한글화)
         if (todaySessions > 0 || todayMinutes > 0)
           Container(
             padding: const EdgeInsets.all(AppSizes.paddingL),
@@ -355,7 +353,7 @@ class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
                         color: AppColors.accentGreen,
                       ),
                     ),
-                    Text('Sessions', style: AppTextStyles.caption),
+                    Text('세션', style: AppTextStyles.caption),
                   ],
                 ),
                 Container(
@@ -366,12 +364,12 @@ class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
                 Column(
                   children: [
                     Text(
-                      '${todayMinutes}m',
+                      '${todayMinutes}분',
                       style: AppTextStyles.numberM.copyWith(
                         color: AppColors.accentGreen,
                       ),
                     ),
-                    Text('Focus Time', style: AppTextStyles.caption),
+                    Text('집중 시간', style: AppTextStyles.caption),
                   ],
                 ),
               ],
@@ -379,7 +377,7 @@ class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
           ),
         const SizedBox(height: AppSizes.spaceXL),
 
-        // 시작 버튼
+        // 시작 버튼 (한글화)
         NeumorphicButton(
           width: double.infinity,
           height: AppSizes.buttonHeightL,
@@ -395,7 +393,7 @@ class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
               ),
               const SizedBox(width: AppSizes.spaceM),
               Text(
-                'Select Task & Start',
+                '태스크 선택 & 시작',
                 style: AppTextStyles.button.copyWith(
                   fontSize: 16,
                   color: AppColors.accentBlue,
@@ -416,7 +414,7 @@ class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Progress', style: AppTextStyles.caption),
+            Text('진행도', style: AppTextStyles.caption),
             Text(
               '${(progress * 100).clamp(0, 100).toInt()}%',
               style: AppTextStyles.numberS.copyWith(
@@ -465,7 +463,7 @@ class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
   }
 }
 
-/// Task 선택 BottomSheet
+/// Task 선택 BottomSheet (한글화)
 class _TaskSelectorBottomSheet extends ConsumerWidget {
   final Function(Task) onTaskSelect;
 
@@ -501,25 +499,81 @@ class _TaskSelectorBottomSheet extends ConsumerWidget {
             ),
           ),
 
-          // 헤더
+          // 헤더 (한글화)
           Padding(
             padding: const EdgeInsets.all(AppSizes.paddingXL),
-            child: Text('Select a Task', style: AppTextStyles.heading3),
+            child: Text('태스크 선택', style: AppTextStyles.heading3),
           ),
 
-          // Task 리스트
+          // Task 리스트 또는 빈 상태
           if (tasks.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(AppSizes.paddingXL),
-              child: Text(
-                'No tasks available.\nCreate a task first!',
-                style: AppTextStyles.bodyM.copyWith(
-                  color: AppColors.textTertiary,
-                ),
-                textAlign: TextAlign.center,
+            // 빈 상태 (한글화)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.paddingXL,
+                vertical: AppSizes.paddingXXL,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 아이콘
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentOrange.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.inbox_outlined,
+                      size: 40,
+                      color: AppColors.accentOrange,
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.spaceXL),
+
+                  // 메시지 (한글화)
+                  Text(
+                    '사용 가능한 태스크가 없습니다',
+                    style: AppTextStyles.heading4,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSizes.spaceM),
+
+                  Text(
+                    '먼저 태스크를 생성한 후\n집중 세션을 시작하세요!',
+                    style: AppTextStyles.bodyM.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSizes.spaceXL),
+
+                  // 닫기 버튼 (한글화)
+                  NeumorphicButton(
+                    width: double.infinity,
+                    height: AppSizes.buttonHeightL,
+                    borderRadius: AppSizes.radiusM,
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.close,
+                          size: AppSizes.iconM,
+                          color: AppColors.textPrimary,
+                        ),
+                        const SizedBox(width: AppSizes.spaceM),
+                        Text('닫기', style: AppTextStyles.button),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             )
           else
+            // Task 목록
             ConstrainedBox(
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.5,
@@ -597,7 +651,7 @@ class _TaskSelectorBottomSheet extends ConsumerWidget {
                       if (task.progress > 0) ...[
                         const SizedBox(width: AppSizes.spaceM),
                         Text(
-                          '${task.progress}% done',
+                          '${task.progress}% 완료',
                           style: AppTextStyles.caption.copyWith(
                             color: AppColors.accentGreen,
                           ),
