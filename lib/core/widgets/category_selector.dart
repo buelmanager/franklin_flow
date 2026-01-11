@@ -81,7 +81,7 @@ class _CategorySelectorState extends State<CategorySelector> {
 
     final result = await NeumorphicDialog.show<bool>(
       context: context,
-      title: '새 카테고리 추가',
+      title: AppStrings.categoryDialogAddTitle,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -96,7 +96,7 @@ class _CategorySelectorState extends State<CategorySelector> {
               controller: nameController,
               style: AppTextStyles.bodyM,
               decoration: InputDecoration(
-                hintText: '카테고리 이름',
+                hintText: AppStrings.categoryHintName,
                 hintStyle: AppTextStyles.bodyM.copyWith(
                   color: AppColors.textTertiary,
                 ),
@@ -174,8 +174,8 @@ class _CategorySelectorState extends State<CategorySelector> {
 
     final confirmed = await NeumorphicDialog.showConfirm(
       context: context,
-      title: '카테고리 삭제',
-      message: '${category.name} 카테고리를 삭제하시겠습니까?',
+      title: AppStrings.categoryDialogDeleteTitle,
+      message: '${category.name} ${AppStrings.categoryDialogDeleteMessage}',
       confirmText: AppStrings.btnDelete,
       cancelText: AppStrings.btnCancel,
     );
@@ -197,7 +197,9 @@ class _CategorySelectorState extends State<CategorySelector> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${category.name} 카테고리가 삭제되었습니다'),
+              content: Text(
+                '${category.name} ${AppStrings.snackBarCategoryDeleted}',
+              ),
               backgroundColor: AppColors.accentRed,
               duration: const Duration(seconds: 2),
             ),
@@ -211,10 +213,10 @@ class _CategorySelectorState extends State<CategorySelector> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('카테고리 삭제에 실패했습니다'),
+            SnackBar(
+              content: Text(AppStrings.snackBarCategoryDeleteFailed),
               backgroundColor: AppColors.error,
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -262,7 +264,7 @@ class _CategorySelectorState extends State<CategorySelector> {
             ] else ...[
               Expanded(
                 child: Text(
-                  '카테고리를 선택하세요',
+                  AppStrings.categorySelectPlaceholder,
                   style: AppTextStyles.bodyM.copyWith(
                     color: AppColors.textTertiary,
                   ),
@@ -354,7 +356,10 @@ class _CategoryBottomSheetState extends State<_CategoryBottomSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('카테고리 선택', style: AppTextStyles.heading3),
+                Text(
+                  AppStrings.categorySelectTitle,
+                  style: AppTextStyles.heading3,
+                ),
                 GestureDetector(
                   onTap: () {
                     Navigator.of(context).pop();

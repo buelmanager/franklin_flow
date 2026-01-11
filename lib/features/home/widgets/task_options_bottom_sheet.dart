@@ -79,7 +79,7 @@ class TaskOptionsBottomSheet extends StatelessWidget {
 
     await NeumorphicDialog.show(
       context: context,
-      title: '진행도 설정',
+      title: AppStrings.taskProgressDialogTitle,
       content: StatefulBuilder(
         builder: (context, setState) {
           return Column(
@@ -323,7 +323,7 @@ class TaskOptionsBottomSheet extends StatelessWidget {
           _buildOption(
             context,
             icon: Icons.add,
-            label: '진행도 +10%',
+            label: AppStrings.taskOptionIncreaseProgress,
             color: AppColors.accentGreen,
             onTap: () => _handleIncreaseProgress(context),
             enabled: task.progress < 100,
@@ -331,7 +331,7 @@ class TaskOptionsBottomSheet extends StatelessWidget {
           _buildOption(
             context,
             icon: Icons.remove,
-            label: '진행도 -10%',
+            label: AppStrings.taskOptionDecreaseProgress,
             color: AppColors.accentOrange,
             onTap: () => _handleDecreaseProgress(context),
             enabled: task.progress > 0,
@@ -339,7 +339,7 @@ class TaskOptionsBottomSheet extends StatelessWidget {
           _buildOption(
             context,
             icon: Icons.tune,
-            label: '진행도 직접 설정',
+            label: AppStrings.taskOptionSetProgress,
             color: AppColors.accentPurple,
             onTap: () => _handleSetProgress(context),
           ),
@@ -351,7 +351,9 @@ class TaskOptionsBottomSheet extends StatelessWidget {
             _buildOption(
               context,
               icon: Icons.play_arrow,
-              label: task.isPending ? '시작하기' : '진행 중',
+              label: task.isPending
+                  ? AppStrings.taskOptionStart
+                  : AppStrings.taskOptionInProgress,
               color: AppColors.accentOrange,
               onTap: () => _handleChangeStatus(context, 'in-progress'),
               enabled: task.isPending,
@@ -359,7 +361,7 @@ class TaskOptionsBottomSheet extends StatelessWidget {
           _buildOption(
             context,
             icon: Icons.check,
-            label: '완료 처리',
+            label: AppStrings.taskOptionComplete,
             color: AppColors.accentGreen,
             onTap: () => _handleChangeStatus(context, 'completed'),
             enabled: !task.isCompleted,
@@ -368,7 +370,7 @@ class TaskOptionsBottomSheet extends StatelessWidget {
             _buildOption(
               context,
               icon: Icons.replay,
-              label: '다시 시작',
+              label: AppStrings.taskOptionRestart,
               color: AppColors.accentBlue,
               onTap: () => _handleChangeStatus(context, 'pending'),
             ),
@@ -378,14 +380,14 @@ class TaskOptionsBottomSheet extends StatelessWidget {
           _buildOption(
             context,
             icon: Icons.edit,
-            label: '수정',
+            label: AppStrings.taskOptionEdit,
             color: AppColors.accentBlue,
             onTap: () => _handleEdit(context),
           ),
           _buildOption(
             context,
             icon: Icons.delete_outline,
-            label: '삭제',
+            label: AppStrings.taskOptionDelete,
             color: AppColors.accentRed,
             onTap: () => _handleDelete(context),
           ),

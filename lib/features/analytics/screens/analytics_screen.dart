@@ -38,7 +38,7 @@ class AnalyticsScreen extends StatelessWidget {
             Text(AppStrings.navAnalytics, style: AppTextStyles.heading2),
             const SizedBox(height: AppSizes.spaceM),
             Text(
-              '통계 및 분석 화면입니다.\n곧 업데이트 예정입니다.',
+              AppStrings.screenAnalyticsDescription,
               style: AppTextStyles.bodyM.copyWith(
                 color: AppColors.textSecondary,
               ),
