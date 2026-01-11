@@ -61,8 +61,8 @@ class AppStrings {
   // ─────────────────────────────────────────────────────────────────────────
 
   static const String todayProgress = '오늘의 진행도';
-  static const String priorityTasks = 'Priority Tasks';
-  static const String thisWeek = 'This Week';
+  static const String priorityTasks = '우선순위 태스크';
+  static const String thisWeek = '이번 주 목표';
   static const String done = '완료';
 
   // ─────────────────────────────────────────────────────────────────────────
