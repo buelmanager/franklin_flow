@@ -100,7 +100,7 @@ class TasksSection extends StatelessWidget {
 
             // 제목
             Text(
-              '우선순위 태스크를 추가하세요',
+              AppStrings.taskEmptyTitle,
               style: AppTextStyles.heading4,
               textAlign: TextAlign.center,
             ),
@@ -108,7 +108,7 @@ class TasksSection extends StatelessWidget {
 
             // 설명
             Text(
-              '오늘 해야 할 중요한 일들을 추가하고\n집중해서 하나씩 완료해보세요!',
+              AppStrings.taskEmptyDescription,
               style: AppTextStyles.bodyM.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -132,7 +132,7 @@ class TasksSection extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSizes.spaceM),
                   Text(
-                    '첫 번째 태스크 추가하기',
+                    AppStrings.taskEmptyAddFirst,
                     style: AppTextStyles.button.copyWith(
                       color: AppColors.accentBlue,
                       fontSize: 15,
@@ -162,7 +162,7 @@ class TasksSection extends StatelessWidget {
                       ),
                       const SizedBox(width: AppSizes.spaceS),
                       Text(
-                        '예시',
+                        AppStrings.taskEmptyExampleTitle,
                         style: AppTextStyles.labelM.copyWith(
                           color: AppColors.accentPurple,
                           fontWeight: FontWeight.w600,
@@ -171,11 +171,23 @@ class TasksSection extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: AppSizes.spaceM),
-                  _buildExampleItem('💼', '프로젝트 기획서 작성', '2시간'),
+                  _buildExampleItem(
+                    '💼',
+                    AppStrings.taskEmptyExample1Title,
+                    AppStrings.taskEmptyExample1Time,
+                  ),
                   const SizedBox(height: AppSizes.spaceS),
-                  _buildExampleItem('📧', '이메일 답장', '30분'),
+                  _buildExampleItem(
+                    '📧',
+                    AppStrings.taskEmptyExample2Title,
+                    AppStrings.taskEmptyExample2Time,
+                  ),
                   const SizedBox(height: AppSizes.spaceS),
-                  _buildExampleItem('📝', '주간 회의 준비', '1시간'),
+                  _buildExampleItem(
+                    '📝',
+                    AppStrings.taskEmptyExample3Title,
+                    AppStrings.taskEmptyExample3Time,
+                  ),
                 ],
               ),
             ),

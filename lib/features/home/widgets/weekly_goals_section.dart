@@ -139,7 +139,7 @@ class WeeklyGoalsSection extends ConsumerWidget {
 
             // 제목
             Text(
-              '주간 목표를 설정하세요',
+              AppStrings.goalSectionEmptyTitle,
               style: AppTextStyles.heading4,
               textAlign: TextAlign.center,
             ),
@@ -147,7 +147,7 @@ class WeeklyGoalsSection extends ConsumerWidget {
 
             // 설명
             Text(
-              '이번 주에 달성하고 싶은 목표를 추가해보세요.\n매일 조금씩 진행하면서 성취감을 느껴보세요!',
+              AppStrings.goalSectionEmptyDescription,
               style: AppTextStyles.bodyM.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -171,7 +171,7 @@ class WeeklyGoalsSection extends ConsumerWidget {
                   ),
                   const SizedBox(width: AppSizes.spaceM),
                   Text(
-                    '첫 번째 목표 추가하기',
+                    AppStrings.goalSectionAddFirst,
                     style: AppTextStyles.button.copyWith(
                       color: AppColors.accentBlue,
                       fontSize: 15,
@@ -201,7 +201,7 @@ class WeeklyGoalsSection extends ConsumerWidget {
                       ),
                       const SizedBox(width: AppSizes.spaceS),
                       Text(
-                        '예시',
+                        AppStrings.goalSectionExampleTitle,
                         style: AppTextStyles.labelM.copyWith(
                           color: AppColors.accentGreen,
                           fontWeight: FontWeight.w600,
@@ -210,11 +210,23 @@ class WeeklyGoalsSection extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: AppSizes.spaceM),
-                  _buildExampleItem('🏃', '운동 3회', AppColors.accentPink),
+                  _buildExampleItem(
+                    '🏃',
+                    AppStrings.goalSectionExample1,
+                    AppColors.accentPink,
+                  ),
                   const SizedBox(height: AppSizes.spaceS),
-                  _buildExampleItem('📚', '독서 10페이지', AppColors.accentPurple),
+                  _buildExampleItem(
+                    '📚',
+                    AppStrings.goalSectionExample2,
+                    AppColors.accentPurple,
+                  ),
                   const SizedBox(height: AppSizes.spaceS),
-                  _buildExampleItem('💧', '물 8잔', AppColors.accentBlue),
+                  _buildExampleItem(
+                    '💧',
+                    AppStrings.goalSectionExample3,
+                    AppColors.accentBlue,
+                  ),
                 ],
               ),
             ),
@@ -438,7 +450,7 @@ class _GoalOptionsBottomSheet extends StatelessWidget {
           _buildOption(
             context,
             icon: Icons.add,
-            label: '진행도 증가',
+            label: AppStrings.goalOptionIncrease,
             color: AppColors.accentGreen,
             onTap: () => _handleIncrement(context),
             enabled: !goal.isCompleted,
@@ -446,7 +458,7 @@ class _GoalOptionsBottomSheet extends StatelessWidget {
           _buildOption(
             context,
             icon: Icons.remove,
-            label: '진행도 감소',
+            label: AppStrings.goalOptionDecrease,
             color: AppColors.accentOrange,
             onTap: () => _handleDecrement(context),
             enabled: goal.current > 0,
@@ -454,14 +466,14 @@ class _GoalOptionsBottomSheet extends StatelessWidget {
           _buildOption(
             context,
             icon: Icons.edit,
-            label: '수정',
+            label: AppStrings.btnEdit,
             color: AppColors.accentBlue,
             onTap: () => _handleEdit(context),
           ),
           _buildOption(
             context,
             icon: Icons.delete_outline,
-            label: '삭제',
+            label: AppStrings.btnDelete,
             color: AppColors.accentRed,
             onTap: () => _handleDelete(context),
           ),

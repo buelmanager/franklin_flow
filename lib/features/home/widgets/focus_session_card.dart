@@ -219,7 +219,7 @@ class _FocusSessionCardState extends ConsumerState<FocusSessionCard> {
         const SizedBox(height: AppSizes.spaceS),
         Center(
           child: Text(
-            '목표: ${session.targetMinutes}분',
+            '${AppStrings.focusTargetLabel}: ${session.targetMinutes}${AppStrings.focusMinuteSuffix}',
             style: AppTextStyles.caption,
           ),
         ),

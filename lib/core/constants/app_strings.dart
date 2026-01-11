@@ -80,6 +80,8 @@ class AppStrings {
   // Focus Session - 통계
   static const String focusStatSessions = '세션';
   static const String focusStatFocusTime = '집중 시간';
+  static const String focusTargetLabel = '목표';
+  static const String focusMinuteSuffix = '분';
 
   // Focus Session - 버튼
   static const String focusBtnStart = '태스크 선택 & 시작';
@@ -137,6 +139,31 @@ class AppStrings {
 
   static const String taskProgressDialogTitle = '진행도 설정';
   static const String taskProgressDialogDescription = '의 진행도를 설정하세요';
+  static const String taskProgressLabel = 'Progress';
+
+  // Task - 옵션 BottomSheet
+  static const String taskOptionIncreaseProgress = '진행도 +10%';
+  static const String taskOptionDecreaseProgress = '진행도 -10%';
+  static const String taskOptionSetProgress = '진행도 직접 설정';
+  static const String taskOptionStart = '시작하기';
+  static const String taskOptionInProgress = '진행 중';
+  static const String taskOptionComplete = '완료 처리';
+  static const String taskOptionRestart = '다시 시작';
+  static const String taskOptionEdit = '수정';
+  static const String taskOptionDelete = '삭제';
+
+  // Task - 빈 상태
+  static const String taskEmptyTitle = '우선순위 태스크를 추가하세요';
+  static const String taskEmptyDescription =
+      '오늘 해야 할 중요한 일들을 추가하고\n집중해서 하나씩 완료해보세요!';
+  static const String taskEmptyAddFirst = '첫 번째 태스크 추가하기';
+  static const String taskEmptyExampleTitle = '예시';
+  static const String taskEmptyExample1Title = '프로젝트 기획서 작성';
+  static const String taskEmptyExample1Time = '2시간';
+  static const String taskEmptyExample2Title = '이메일 답장';
+  static const String taskEmptyExample2Time = '30분';
+  static const String taskEmptyExample3Title = '주간 회의 준비';
+  static const String taskEmptyExample3Time = '1시간';
 
   // ─────────────────────────────────────────────────────────────────────────
   // Task - 삭제 다이얼로그
@@ -164,6 +191,40 @@ class AppStrings {
   static const String goalEmptyTitle = '설정된 주간 목표가 없습니다';
   static const String goalEmptyDescription = '새로운 목표를 추가하여\n이번 주를 계획해보세요!';
 
+  // Goal - 폼 다이얼로그
+  static const String goalFormTitleAdd = '새 목표 추가';
+  static const String goalFormTitleEdit = '목표 수정';
+  static const String goalFormFieldEmoji = '이모지';
+  static const String goalFormFieldName = '목표 이름';
+  static const String goalFormFieldTotal = '주간 목표 횟수';
+  static const String goalFormFieldColor = '색상';
+  static const String goalFormHintName = '예: Workout, Reading';
+  static const String goalFormHintTotal = '예: 7';
+  static const String goalFormSuffixTotal = '회';
+
+  // Goal - 검증 메시지
+  static const String goalValidationNameRequired = '목표 이름을 입력해주세요';
+  static const String goalValidationTotalRequired = '목표 횟수를 입력해주세요';
+  static const String goalValidationTotalInvalid = '1 이상의 숫자를 입력해주세요';
+
+  // Goal - 에러 메시지
+  static const String goalErrorUpdateFailed = '목표 수정에 실패했습니다.';
+  static const String goalErrorSaveFailed = '목표 저장 중 오류가 발생했습니다.';
+
+  // Goal - 주간 목표 섹션
+  static const String goalSectionEmptyTitle = '주간 목표를 설정하세요';
+  static const String goalSectionEmptyDescription =
+      '이번 주에 달성하고 싶은 목표를 추가해보세요.\n매일 조금씩 진행하면서 성취감을 느껴보세요!';
+  static const String goalSectionAddFirst = '첫 번째 목표 추가하기';
+  static const String goalSectionExampleTitle = '예시';
+  static const String goalSectionExample1 = '운동 3회';
+  static const String goalSectionExample2 = '독서 10페이지';
+  static const String goalSectionExample3 = '물 8잔';
+
+  // Goal - 옵션
+  static const String goalOptionIncrease = '진행도 증가';
+  static const String goalOptionDecrease = '진행도 감소';
+
   // ─────────────────────────────────────────────────────────────────────────
   // SnackBar 메시지 - Task
   // ─────────────────────────────────────────────────────────────────────────
@@ -178,7 +239,18 @@ class AppStrings {
 
   // SnackBar 메시지 - Goal
   static const String snackBarGoalAdded = '목표가 추가되었습니다';
+  static const String snackBarGoalUpdated = '목표가 수정되었습니다';
   static const String snackBarGoalDeleted = '목표가 삭제되었습니다';
+
+  // SnackBar 메시지 - Category
+  static const String snackBarCategoryDeleted = '카테고리가 삭제되었습니다';
+  static const String snackBarCategoryDeleteFailed = '카테고리 삭제에 실패했습니다';
+
+  // Screen 설명
+  static const String screenAnalyticsDescription =
+      '통계 및 분석 화면입니다.\n곧 업데이트 예정입니다.';
+  static const String screenScheduleDescription = '일정 관리 화면입니다.\n곧 업데이트 예정입니다.';
+  static const String screenSettingsDescription = '설정 화면입니다.\n곧 업데이트 예정입니다.';
 
   // ─────────────────────────────────────────────────────────────────────────
   // Category
@@ -189,6 +261,8 @@ class AppStrings {
   static const String categoryDialogDeleteMessage = '카테고리를 삭제하시겠습니까?';
   static const String categoryHintName = '카테고리 이름';
   static const String categorySelectPlaceholder = '카테고리를 선택하세요';
+  static const String categorySelectTitle = '카테고리 선택';
+  static const String categorySaved = '카테고리가 삭제되었습니다';
 
   // ─────────────────────────────────────────────────────────────────────────
   // TimeSelector

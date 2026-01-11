@@ -38,7 +38,7 @@ class ScheduleScreen extends StatelessWidget {
             Text(AppStrings.navSchedule, style: AppTextStyles.heading2),
             const SizedBox(height: AppSizes.spaceM),
             Text(
-              '일정 관리 화면입니다.\n곧 업데이트 예정입니다.',
+              AppStrings.screenScheduleDescription,
               style: AppTextStyles.bodyM.copyWith(
                 color: AppColors.textSecondary,
               ),

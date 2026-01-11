@@ -38,7 +38,7 @@ class SettingsScreen extends StatelessWidget {
             Text(AppStrings.navSettings, style: AppTextStyles.heading2),
             const SizedBox(height: AppSizes.spaceM),
             Text(
-              '설정 화면입니다.\n곧 업데이트 예정입니다.',
+              AppStrings.screenSettingsDescription,
               style: AppTextStyles.bodyM.copyWith(
                 color: AppColors.textSecondary,
               ),

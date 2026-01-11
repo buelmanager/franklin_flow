@@ -131,7 +131,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
 
     final total = int.tryParse(_totalController.text);
     if (total == null || total <= 0) {
-      _showError('목표 횟수는 1 이상이어야 합니다');
+      _showError(AppStrings.goalValidationTotalInvalid);
       return;
     }
 
@@ -152,7 +152,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
             .updateGoal(savedGoal);
 
         if (!success) {
-          _showError('목표 수정에 실패했습니다.');
+          _showError(AppStrings.goalErrorUpdateFailed);
           return;
         }
 
@@ -185,7 +185,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
         error: e,
         stackTrace: stackTrace,
       );
-      _showError('목표 저장 중 오류가 발생했습니다.');
+      _showError(AppStrings.goalErrorSaveFailed);
     }
   }
 
@@ -226,7 +226,9 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
               children: [
                 // 제목
                 Text(
-                  _isEditMode ? '목표 수정' : '새 목표 추가',
+                  _isEditMode
+                      ? AppStrings.goalFormTitleEdit
+                      : AppStrings.goalFormTitleAdd,
                   style: AppTextStyles.heading3,
                 ),
                 const SizedBox(height: AppSizes.spaceXL),
@@ -277,7 +279,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('이모지', style: AppTextStyles.labelL),
+        Text(AppStrings.goalFormFieldEmoji, style: AppTextStyles.labelL),
         const SizedBox(height: AppSizes.spaceM),
         Wrap(
           spacing: AppSizes.spaceM,
@@ -312,7 +314,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('목표 이름', style: AppTextStyles.labelL),
+        Text(AppStrings.goalFormFieldName, style: AppTextStyles.labelL),
         const SizedBox(height: AppSizes.spaceM),
         NeumorphicContainer(
           style: NeumorphicStyle.concave,
@@ -325,7 +327,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
             controller: _titleController,
             style: AppTextStyles.bodyM,
             decoration: InputDecoration(
-              hintText: '예: Workout, Reading',
+              hintText: AppStrings.goalFormHintName,
               hintStyle: AppTextStyles.bodyM.copyWith(
                 color: AppColors.textTertiary,
               ),
@@ -337,7 +339,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return '목표 이름을 입력해주세요';
+                return AppStrings.goalValidationNameRequired;
               }
               return null;
             },
@@ -351,7 +353,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('주간 목표 횟수', style: AppTextStyles.labelL),
+        Text(AppStrings.goalFormFieldTotal, style: AppTextStyles.labelL),
         const SizedBox(height: AppSizes.spaceM),
         NeumorphicContainer(
           style: NeumorphicStyle.concave,
@@ -369,7 +371,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
               LengthLimitingTextInputFormatter(2),
             ],
             decoration: InputDecoration(
-              hintText: '예: 7',
+              hintText: AppStrings.goalFormHintTotal,
               hintStyle: AppTextStyles.bodyM.copyWith(
                 color: AppColors.textTertiary,
               ),
@@ -378,16 +380,16 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
               contentPadding: const EdgeInsets.symmetric(
                 vertical: AppSizes.paddingS,
               ),
-              suffixText: '회',
+              suffixText: AppStrings.goalFormSuffixTotal,
               suffixStyle: AppTextStyles.labelM,
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return '목표 횟수를 입력해주세요';
+                return AppStrings.goalValidationTotalRequired;
               }
               final number = int.tryParse(value);
               if (number == null || number <= 0) {
-                return '1 이상의 숫자를 입력해주세요';
+                return AppStrings.goalValidationTotalInvalid;
               }
               return null;
             },
@@ -401,7 +403,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('색상', style: AppTextStyles.labelL),
+        Text(AppStrings.goalFormFieldColor, style: AppTextStyles.labelL),
         const SizedBox(height: AppSizes.spaceM),
         Wrap(
           spacing: AppSizes.spaceM,

@@ -145,7 +145,10 @@ class TaskCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Progress', style: AppTextStyles.caption),
+                    Text(
+                      AppStrings.taskProgressLabel,
+                      style: AppTextStyles.caption,
+                    ),
                     Row(
                       children: [
                         Text(
@@ -213,7 +216,7 @@ class TaskCard extends StatelessWidget {
 
     await NeumorphicDialog.show(
       context: context,
-      title: '진행도 설정',
+      title: AppStrings.taskProgressDialogTitle,
       content: StatefulBuilder(
         builder: (context, setState) {
           return Column(
