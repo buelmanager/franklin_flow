@@ -162,8 +162,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   // ─────────────────────────────────────────────────────────────────────────
   // 스크롤 감도 설정 (값이 클수록 더 많이 스크롤해야 전환됨)
   // ─────────────────────────────────────────────────────────────────────────
-  static const double _scrollThresholdToWeekView = 80.0; // 주간 뷰로 전환
-  static const double _scrollThresholdToMonthView = 10.0; // 월간 뷰로 복귀
+  static const double _scrollThresholdToWeekView = 150.0; // 주간 뷰로 전환
+  static const double _scrollThresholdToMonthView = 30.0; // 월간 뷰로 복귀
 
   /// 스크롤 감지 → 캘린더 뷰 전환
   void _onScroll() {

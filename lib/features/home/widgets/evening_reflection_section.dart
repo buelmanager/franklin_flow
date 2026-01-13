@@ -196,7 +196,7 @@ class _EveningReflectionSectionState
         widget.selectedTaskIds.isNotEmpty || widget.freeIntentions.isNotEmpty;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(AppStrings.eveningMorningPlan, style: AppTextStyles.heading3),
         const SizedBox(height: AppSizes.spaceL),
