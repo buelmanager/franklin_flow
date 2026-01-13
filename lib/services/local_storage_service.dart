@@ -2,6 +2,7 @@
 
 import 'package:hive_flutter/hive_flutter.dart';
 import '../core/utils/app_logger.dart';
+import '../shared/models/daily_record_model.dart';
 import '../shared/models/focus_session_model.dart';
 import '../shared/models/goal_model.dart';
 import '../shared/models/task_model.dart';
@@ -41,9 +42,12 @@ class LocalStorageService {
 
   // Box 이름
   static const String _focusSessionBoxName = 'focus_sessions';
+  // Box 이름 추가
+  static const String _dailyRecordBoxName = 'daily_records';
 
   // Box 인스턴스
   late Box<FocusSession> _focusSessionBox;
+  late Box<DailyRecord> _dailyRecordBox;
 
   // ─────────────────────────────────────────────────────────────────────────
   // 초기화
@@ -61,6 +65,8 @@ class LocalStorageService {
       Hive.registerAdapter(TaskAdapter());
       Hive.registerAdapter(CategoryAdapter());
       Hive.registerAdapter(GoalAdapter());
+      // 추가
+      Hive.registerAdapter(DailyRecordAdapter()); // ← 이 줄 추가
 
       AppLogger.i('Hive initialized successfully', tag: 'LocalStorageService');
     } catch (e, stackTrace) {
@@ -89,11 +95,14 @@ class LocalStorageService {
       _settingsBox = await Hive.openBox(_settingsBoxName);
       _focusSessionBox = await Hive.openBox<FocusSession>(_focusSessionBoxName);
       _goalBox = await Hive.openBox<Goal>(_goalBoxName);
+      // 추가
+      _dailyRecordBox = await Hive.openBox<DailyRecord>(_dailyRecordBoxName);
 
       _isInitialized = true;
 
       AppLogger.i(
-        'Boxes opened - Tasks: ${_taskBox.length}, Categories: ${_categoryBox.length}',
+        'Boxes opened - Tasks: ${_taskBox.length}, Categories: ${_categoryBox.length}, '
+        'DailyRecords: ${_dailyRecordBox.length}',
         tag: 'LocalStorageService',
       );
 
@@ -233,7 +242,8 @@ class LocalStorageService {
     await _categoryBox.close();
     await _settingsBox.close();
     await _goalBox.close();
-
+    // 추가
+    await _dailyRecordBox.close();
     _isInitialized = false;
     AppLogger.i('All boxes closed', tag: 'LocalStorageService');
   }
@@ -245,7 +255,8 @@ class LocalStorageService {
     await _categoryBox.clear();
     await _settingsBox.clear();
     await _goalBox.clear();
-
+    // 추가
+    await _dailyRecordBox.clear();
     await _initializeDefaultCategories();
     AppLogger.i('All data cleared and reset', tag: 'LocalStorageService');
   }
@@ -326,5 +337,31 @@ class LocalStorageService {
     if (_goalBox.isEmpty) return 1;
     final maxId = _goalBox.keys.cast<int>().reduce((a, b) => a > b ? a : b);
     return maxId + 1;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // DailyRecord CRUD
+  // ─────────────────────────────────────────────────────────────────────────
+
+  DailyRecord? getDailyRecord(String id) {
+    _checkInitialized();
+    return _dailyRecordBox.get(id);
+  }
+
+  List<DailyRecord> getDailyRecords() {
+    _checkInitialized();
+    return _dailyRecordBox.values.toList();
+  }
+
+  Future<void> saveDailyRecord(DailyRecord record) async {
+    _checkInitialized();
+    await _dailyRecordBox.put(record.id, record);
+    AppLogger.d('Daily record saved: ${record.id}', tag: 'LocalStorageService');
+  }
+
+  Future<void> deleteDailyRecord(String id) async {
+    _checkInitialized();
+    await _dailyRecordBox.delete(id);
+    AppLogger.i('Daily record deleted: $id', tag: 'LocalStorageService');
   }
 }
