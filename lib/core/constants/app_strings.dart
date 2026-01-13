@@ -504,6 +504,47 @@ class AppStrings {
   static const String reflectionResolutionComplete = '다짐 완료';
 
   // ─────────────────────────────────────────────────────────────────────────
+  // 온보딩 (Onboarding)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // Page 1: 환영
+  static const String onboardingWelcomeTitle = 'Franklin Flow';
+  static const String onboardingWelcomeQuote =
+      '"What good shall I do this day?"';
+  static const String onboardingWelcomeAuthor = '- Benjamin Franklin';
+  static const String onboardingWelcomeSubtitle = '오늘, 어떤 좋은 일을 하시겠어요?';
+  static const String onboardingWelcomeDesc =
+      '프랭클린의 시간 관리 철학을 바탕으로\n매일 더 나은 하루를 만들어보세요';
+  static const String onboardingStart = '시작하기';
+
+  // Page 2: 이름 입력
+  static const String onboardingNameTitle = '어떻게 불러드릴까요?';
+  static const String onboardingNameHint = '이름을 입력하세요';
+  static const String onboardingNameDesc = '개인화된 인사말에 사용됩니다';
+  static const String onboardingNameSkip = '나중에 설정';
+
+  // Page 3: 알림 설정
+  static const String onboardingNotificationTitle = '알림을 설정해주세요';
+  static const String onboardingNotificationDesc = '매일 규칙적인 루틴을 만들어드려요';
+  static const String onboardingMorningAlarm = '아침 다짐 알림';
+  static const String onboardingMorningAlarmDesc = '하루를 시작하며 오늘의 다짐을 세워요';
+  static const String onboardingEveningAlarm = '저녁 성찰 알림';
+  static const String onboardingEveningAlarmDesc = '하루를 마무리하며 돌아봐요';
+  static const String onboardingNotificationLater = '나중에 설정에서 변경할 수 있어요';
+
+  // Page 4: 완료
+  static const String onboardingCompleteTitle = '준비가 완료됐어요!';
+  static const String onboardingCompleteDesc1 = '매일 아침 다짐하고';
+  static const String onboardingCompleteDesc2 = '저녁에 성찰하며';
+  static const String onboardingCompleteDesc3 = '더 나은 하루를 만들어보세요';
+  static const String onboardingCompleteButton = '시작하기';
+
+  // 공통
+  static const String onboardingNext = '다음';
+  static const String onboardingSkip = '건너뛰기';
+  static const String onboardingBack = '이전';
+
+  // ─────────────────────────────────────────────────────────────────────────
   // 유틸리티 메서드
   // ─────────────────────────────────────────────────────────────────────────
 

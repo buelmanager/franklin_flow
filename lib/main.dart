@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:franklin_flow/shared/models/focus_session_model.dart';
 import 'package:hive/hive.dart';
 
 // Core
@@ -14,9 +13,13 @@ import 'features/home/home.dart';
 import 'features/analytics/analytics.dart';
 import 'features/schedule/schedule.dart';
 import 'features/settings/settings.dart';
+import 'features/onboarding/screens/onboarding_screen.dart';
 
 // Services
 import 'services/local_storage_service.dart';
+
+// Models
+import 'shared/models/focus_session_model.dart';
 
 void main() async {
   // Flutter 바인딩 초기화
@@ -43,8 +46,6 @@ void main() async {
     AppLogger.i('Storage Box 열기 시작...', tag: 'Main');
     await LocalStorageService().openBoxes();
     AppLogger.i('Storage Box 열기 완료', tag: 'Main');
-
-    // 기본 목표 초기화 코드 제거 (0개로 시작)
   } catch (e, stackTrace) {
     AppLogger.e('Hive 초기화 실패', tag: 'Main', error: e, stackTrace: stackTrace);
   }
@@ -70,8 +71,112 @@ class FranklinFlowApp extends StatelessWidget {
         brightness: Brightness.light,
         scaffoldBackgroundColor: AppColors.background,
       ),
-      home: const MainNavigator(),
+      home: const AppRoot(),
     );
+  }
+}
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// 앱 루트 - 온보딩 체크
+/// ═══════════════════════════════════════════════════════════════════════════
+///
+/// 앱 시작 시 온보딩 완료 여부를 확인하여
+/// - 미완료: OnboardingScreen 표시
+/// - 완료: MainNavigator 표시
+/// ═══════════════════════════════════════════════════════════════════════════
+
+class AppRoot extends StatefulWidget {
+  const AppRoot({Key? key}) : super(key: key);
+
+  @override
+  State<AppRoot> createState() => _AppRootState();
+}
+
+class _AppRootState extends State<AppRoot> {
+  bool _isLoading = true;
+  bool _onboardingCompleted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOnboardingStatus();
+  }
+
+  Future<void> _checkOnboardingStatus() async {
+    try {
+      final storage = LocalStorageService();
+      final completed =
+          storage.getSetting<bool>('onboardingCompleted') ?? false;
+
+      AppLogger.d(
+        'Onboarding status check: completed = $completed',
+        tag: 'AppRoot',
+      );
+
+      setState(() {
+        _onboardingCompleted = completed;
+        _isLoading = false;
+      });
+    } catch (e, stackTrace) {
+      AppLogger.e(
+        'Failed to check onboarding status',
+        tag: 'AppRoot',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
+      // 에러 시 온보딩 표시
+      setState(() {
+        _onboardingCompleted = false;
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _onOnboardingComplete() {
+    AppLogger.i('Onboarding completed, navigating to main', tag: 'AppRoot');
+    setState(() {
+      _onboardingCompleted = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 로딩 중
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 로고
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.accentBlue.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text('🌅', style: TextStyle(fontSize: 40)),
+                ),
+              ),
+              const SizedBox(height: AppSizes.spaceL),
+              Text(AppStrings.appName, style: AppTextStyles.heading3),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 온보딩 미완료 → OnboardingScreen
+    if (!_onboardingCompleted) {
+      return OnboardingScreen(onComplete: _onOnboardingComplete);
+    }
+
+    // 온보딩 완료 → MainNavigator
+    return const MainNavigator();
   }
 }
 
