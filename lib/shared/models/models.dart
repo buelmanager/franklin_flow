@@ -5,4 +5,5 @@
 export 'task_model.dart';
 export 'goal_model.dart';
 export 'category_model.dart';
-export 'focus_session_model.dart'; // 추가
+export 'focus_session_model.dart';
+export 'daily_record_model.dart'; // Today's Good 추가
