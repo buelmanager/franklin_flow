@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/core.dart';
 import '../../../core/constants/time_of_day_mode.dart';
 import '../../../shared/models/models.dart';
+import '../../../services/local_storage_service.dart';
+import '../../auth/services/auth_service.dart';
 import '../widgets/widgets.dart';
 import '../widgets/morning_intention_section.dart';
 import '../widgets/evening_reflection_section.dart';
@@ -70,12 +72,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// 저녁 성찰 완료 여부
   bool _isEveningCompleted = false;
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // 사용자 정보 (임시 - 나중에 설정에서 관리)
-  // ─────────────────────────────────────────────────────────────────────────
-
-  final String _userName = 'Won';
-
   /// 연속 달성 일수 (임시)
   final int _streak = 7;
 
@@ -83,6 +79,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void initState() {
     super.initState();
     AppLogger.d('HomeScreen initState', tag: 'HomeScreen');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 사용자 정보 가져오기
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 사용자 이름 가져오기 (우선순위: LocalStorage > 로그인 정보 > 기본값)
+  String _getUserName() {
+    // 1. LocalStorage에서 온보딩 시 저장한 이름 확인
+    final storage = LocalStorageService();
+    final savedName = storage.getSetting<String>('userName');
+    if (savedName != null && savedName.isNotEmpty) {
+      return savedName;
+    }
+
+    // 2. 로그인 정보에서 이름 가져오기
+    final currentUser = ref.read(currentUserProvider);
+    if (currentUser != null && currentUser.name.isNotEmpty) {
+      return currentUser.displayName;
+    }
+
+    // 3. 기본값
+    return '사용자';
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -283,35 +302,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // 기존 Task 핸들러
-  // ─────────────────────────────────────────────────────────────────────────
-
   void _handleTaskTap(int index) {
     setState(() {
       _selectedTaskIndex = _selectedTaskIndex == index ? -1 : index;
     });
-
-    final tasks = ref.read(taskListProvider);
-    AppLogger.ui('Task selected: ${tasks[index].title}', screen: 'HomeScreen');
+    AppLogger.ui('Task tapped at index: $index', screen: 'HomeScreen');
   }
 
-  Future<void> _handleTaskStatusChange(int index) async {
+  void _handleTaskStatusChange(int index) {
     final tasks = ref.read(taskListProvider);
     final task = tasks[index];
 
-    String newStatus;
-    if (task.status == 'completed') {
-      newStatus = 'pending';
-    } else if (task.status == 'pending') {
-      newStatus = 'in-progress';
-    } else {
-      newStatus = 'completed';
-    }
+    // 상태 토글: pending ↔ completed
+    final newStatus = task.isCompleted ? 'pending' : 'completed';
 
-    await ref
-        .read(taskListProvider.notifier)
-        .changeTaskStatus(task.id, newStatus);
+    ref.read(taskListProvider.notifier).changeTaskStatus(task.id, newStatus);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('상태가 변경되었습니다: ${task.title} → $newStatus'),
+          backgroundColor: AppColors.accentGreen,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
 
     AppLogger.ui(
       'Task status changed: ${task.title} -> $newStatus',
@@ -430,8 +445,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 현재 사용자 정보 watch
+    final currentUser = ref.watch(currentUserProvider);
+    final userName = _getUserName();
+
     AppLogger.d(
-      'HomeScreen build - mode: ${_currentMode.displayName}, auto: $_isAutoMode',
+      'HomeScreen build - mode: ${_currentMode.displayName}, auto: $_isAutoMode, user: $userName',
       tag: 'HomeScreen',
     );
 
@@ -446,7 +465,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
             // 공통 헤더 (모든 모드에서 표시)
             HomeHeader(
-              userName: _userName,
+              userName: userName,
               notificationCount: 3,
               onNotificationTap: _handleNotificationTap,
               onProfileTap: _handleProfileTap,
@@ -454,7 +473,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(height: AppSizes.spaceXL),
 
             // 시간대별 콘텐츠
-            _buildModeContent(),
+            _buildModeContent(userName),
 
             const SizedBox(height: 100),
           ],
@@ -464,10 +483,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   /// 시간대별 콘텐츠 빌드
-  Widget _buildModeContent() {
+  Widget _buildModeContent(String userName) {
     switch (_currentMode) {
       case TimeOfDayMode.morning:
-        return _buildMorningMode();
+        return _buildMorningMode(userName);
       case TimeOfDayMode.main:
         return _buildMainMode();
       case TimeOfDayMode.evening:
@@ -476,7 +495,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   /// 아침 모드 콘텐츠 (이벤트)
-  Widget _buildMorningMode() {
+  Widget _buildMorningMode(String userName) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -486,7 +505,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
         // 아침 의도 섹션
         MorningIntentionSection(
-          userName: _userName,
+          userName: userName,
           selectedTaskIds: _selectedIntentionTaskIds,
           freeIntentions: _freeIntentions,
           onTaskToggle: _handleTaskIntentionToggle,
