@@ -13,6 +13,7 @@ import '../../../core/constants/app_sizes.dart';
 import '../../../core/styles/app_text_styles.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../../services/local_storage_service.dart';
+import '../../../services/notification_service.dart';
 import '../config/auth_config.dart';
 import '../services/auth_service.dart';
 
@@ -22,7 +23,7 @@ import '../services/auth_service.dart';
 ///
 /// 앱 시작 시 표시되는 스플래시 화면
 /// - 앱 로고 및 이름 표시
-/// - 초기화 작업 수행 (Firebase, Hive 등)
+/// - 초기화 작업 수행 (Firebase, Hive, Notification 등)
 /// - 초기화 완료 후 적절한 화면으로 이동
 ///
 /// 네비게이션:
@@ -47,6 +48,8 @@ class SplashScreen extends ConsumerStatefulWidget {
 
 class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
+  static const String _tag = 'SplashScreen';
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -56,7 +59,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void initState() {
     super.initState();
-    AppLogger.i('SplashScreen initialized', tag: 'SplashScreen');
+    AppLogger.i('SplashScreen initialized', tag: _tag);
 
     // 애니메이션 설정
     _animationController = AnimationController(
@@ -92,36 +95,38 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   /// 앱 초기화
   Future<void> _initializeApp() async {
     try {
-      AppLogger.i('Starting app initialization...', tag: 'SplashScreen');
+      AppLogger.i('Starting app initialization...', tag: _tag);
 
       // 1. Firebase 초기화 (DefaultFirebaseOptions 사용)
       _updateStatus(AppStrings.splashInitializing);
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
-      AppLogger.i('Firebase initialized', tag: 'SplashScreen');
+      AppLogger.i('Firebase initialized', tag: _tag);
 
       // 2. Hive 초기화
       _updateStatus(AppStrings.splashLoadingData);
       await LocalStorageService.init();
       await LocalStorageService().openBoxes();
-      AppLogger.i('Hive initialized', tag: 'SplashScreen');
+      AppLogger.i('Hive initialized', tag: _tag);
 
-      // 3. 최소 표시 시간 보장 (UX)
+      // 3. 알림 서비스 초기화
+      _updateStatus(AppStrings.splashSettingUpNotifications);
+      await NotificationService.init();
+      AppLogger.i('NotificationService initialized', tag: _tag);
+
+      // 4. 최소 표시 시간 보장 (UX)
       await Future.delayed(const Duration(milliseconds: 1500));
 
       // ⚠ 테스트 모드: 강제 로그아웃
       if (AuthConfig.forceLogoutOnStart) {
-        AppLogger.w(
-          '️ TEST MODE: Force logout on start is ENABLED',
-          tag: 'SplashScreen',
-        );
+        AppLogger.w('️ TEST MODE: Force logout on start is ENABLED', tag: _tag);
         _updateStatus('테스트 모드: 로그아웃 중...');
 
         final authService = AuthService();
         //await authService.signOut();
 
-        AppLogger.i('Force logout completed', tag: 'SplashScreen');
+        AppLogger.i('Force logout completed', tag: _tag);
 
         // 강제 로그아웃 후 로그인 화면으로
         ref.read(authStateProvider.notifier).state = AuthState.unauthenticated;
@@ -129,23 +134,28 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         return;
       }
 
-      // 4. 인증 상태 확인
+      // 5. 인증 상태 확인
       _updateStatus(AppStrings.splashCheckingAuth);
       final authService = AuthService();
       final currentUser = authService.getCurrentUser();
 
-      // 5. 온보딩 상태 확인
+      // 6. 온보딩 상태 확인
       final storage = LocalStorageService();
       final onboardingCompleted =
           storage.getSetting<bool>('onboardingCompleted') ?? false;
 
+      // 7. 알림 재스케줄링 (온보딩 완료 사용자만)
+      if (onboardingCompleted) {
+        await _rescheduleNotifications();
+      }
+
       AppLogger.i(
         'Initialization complete - User: ${currentUser?.name ?? 'null'}, '
         'Onboarding: $onboardingCompleted',
-        tag: 'SplashScreen',
+        tag: _tag,
       );
 
-      // 6. 결과 반환
+      // 8. 결과 반환
       if (currentUser != null) {
         // 로그인됨
         ref.read(currentUserProvider.notifier).state = currentUser;
@@ -164,7 +174,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     } catch (e, stackTrace) {
       AppLogger.e(
         'App initialization failed',
-        tag: 'SplashScreen',
+        tag: _tag,
         error: e,
         stackTrace: stackTrace,
       );
@@ -172,6 +182,32 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       // 에러 발생 시에도 로그인 화면으로 이동
       ref.read(authStateProvider.notifier).state = AuthState.error;
       widget.onComplete(SplashResult.error);
+    }
+  }
+
+  /// 알림 재스케줄링
+  /// 앱이 재시작되거나 기기가 재부팅된 후에도 알림이 유지되도록 함
+  Future<void> _rescheduleNotifications() async {
+    try {
+      final notificationService = NotificationService();
+      await notificationService.scheduleFromSettings();
+
+      // 스케줄된 알림 확인 (디버그용)
+      final pendingNotifications = await notificationService
+          .getPendingNotifications();
+      AppLogger.i(
+        'Notifications rescheduled - Pending: ${pendingNotifications.length}',
+        tag: _tag,
+      );
+
+      for (final notification in pendingNotifications) {
+        AppLogger.d(
+          'Pending notification: ID=${notification.id}, Title=${notification.title}',
+          tag: _tag,
+        );
+      }
+    } catch (e) {
+      AppLogger.e('Failed to reschedule notifications', tag: _tag, error: e);
     }
   }
 
@@ -305,7 +341,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           height: 120,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
-            AppLogger.w('Failed to load app icon: $error', tag: 'SplashScreen');
+            AppLogger.w('Failed to load app icon: $error', tag: _tag);
             // 아이콘 로드 실패 시 대체 아이콘
             return Container(
               width: 120,

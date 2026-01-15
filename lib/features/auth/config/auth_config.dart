@@ -90,5 +90,5 @@ class AuthConfig {
   static const bool enableTestLogin = false;
 
   /// ⚠️ 테스트용: 앱 시작 시 자동 로그아웃 (true로 설정하면 매번 로그인 화면으로 이동)
-  static const bool forceLogoutOnStart = true;
+  static const bool forceLogoutOnStart = false;
 }

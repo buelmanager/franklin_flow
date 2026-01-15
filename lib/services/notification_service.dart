@@ -24,6 +24,8 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._();
   factory NotificationService() => _instance;
 
+  static const String _tag = 'NotificationService';
+
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
 
@@ -32,6 +34,7 @@ class NotificationService {
   // 알림 ID 상수
   static const int _morningNotificationId = 1;
   static const int _eveningNotificationId = 2;
+  static const int _testNotificationId = 99;
 
   // 알림 채널 설정
   static const String _channelId = 'franklin_flow_reminders';
@@ -45,25 +48,22 @@ class NotificationService {
   /// 알림 서비스 초기화
   static Future<void> init() async {
     try {
-      AppLogger.i(
-        'Initializing NotificationService...',
-        tag: 'NotificationService',
-      );
+      AppLogger.i('Initializing NotificationService...', tag: _tag);
 
       // 타임존 초기화
       tz_data.initializeTimeZones();
 
+      // 한국 시간대 설정
+      tz.setLocalLocation(tz.getLocation('Asia/Seoul'));
+
       final service = NotificationService();
       await service._initializeNotifications();
 
-      AppLogger.i(
-        'NotificationService initialized successfully',
-        tag: 'NotificationService',
-      );
+      AppLogger.i('NotificationService initialized successfully', tag: _tag);
     } catch (e, stackTrace) {
       AppLogger.e(
         'NotificationService initialization failed',
-        tag: 'NotificationService',
+        tag: _tag,
         error: e,
         stackTrace: stackTrace,
       );
@@ -84,6 +84,10 @@ class NotificationService {
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
+      // ✨ Foreground에서도 알림 표시
+      defaultPresentAlert: true,
+      defaultPresentBadge: true,
+      defaultPresentSound: true,
     );
 
     // 초기화 설정
@@ -96,19 +100,48 @@ class NotificationService {
     await _notifications.initialize(
       initSettings,
       onDidReceiveNotificationResponse: _onNotificationTap,
+      onDidReceiveBackgroundNotificationResponse: _onBackgroundNotificationTap,
     );
 
+    // Android 알림 채널 생성
+    await _createNotificationChannel();
+
     _isInitialized = true;
-    AppLogger.d('Notification plugin initialized', tag: 'NotificationService');
+    AppLogger.d('Notification plugin initialized', tag: _tag);
+  }
+
+  /// Android 알림 채널 생성
+  Future<void> _createNotificationChannel() async {
+    const androidChannel = AndroidNotificationChannel(
+      _channelId,
+      _channelName,
+      description: _channelDescription,
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+      showBadge: true,
+    );
+
+    await _notifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(androidChannel);
+
+    AppLogger.d('Android notification channel created', tag: _tag);
   }
 
   /// 알림 탭 핸들러
   void _onNotificationTap(NotificationResponse response) {
-    AppLogger.i(
-      'Notification tapped: ${response.payload}',
-      tag: 'NotificationService',
-    );
+    AppLogger.i('Notification tapped: ${response.payload}', tag: _tag);
     // TODO: 알림 탭 시 특정 화면으로 이동
+  }
+
+  /// 백그라운드 알림 탭 핸들러
+  @pragma('vm:entry-point')
+  static void _onBackgroundNotificationTap(NotificationResponse response) {
+    // 백그라운드에서 알림 탭 처리
+    debugPrint('Background notification tapped: ${response.payload}');
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -130,10 +163,7 @@ class NotificationService {
           badge: true,
           sound: true,
         );
-        AppLogger.d(
-          'iOS notification permission: $granted',
-          tag: 'NotificationService',
-        );
+        AppLogger.d('iOS notification permission: $granted', tag: _tag);
         return granted ?? false;
       }
 
@@ -144,11 +174,13 @@ class NotificationService {
           >();
 
       if (androidPlugin != null) {
+        // Android 13+ 알림 권한
         final granted = await androidPlugin.requestNotificationsPermission();
-        AppLogger.d(
-          'Android notification permission: $granted',
-          tag: 'NotificationService',
-        );
+        AppLogger.d('Android notification permission: $granted', tag: _tag);
+
+        // 정확한 알림 권한도 요청
+        await androidPlugin.requestExactAlarmsPermission();
+
         return granted ?? false;
       }
 
@@ -156,7 +188,7 @@ class NotificationService {
     } catch (e) {
       AppLogger.e(
         'Failed to request notification permission',
-        tag: 'NotificationService',
+        tag: _tag,
         error: e,
       );
       return false;
@@ -179,36 +211,20 @@ class NotificationService {
         '☀️ Good Morning!',
         '오늘 하루를 어떻게 보낼지 계획해보세요',
         scheduledTime,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            _channelName,
-            channelDescription: _channelDescription,
-            importance: Importance.high,
-            priority: Priority.high,
-            icon: '@mipmap/ic_launcher',
-          ),
-          iOS: const DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          ),
-        ),
+        _getNotificationDetails(isHighPriority: true),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        // uiLocalNotificationDateInterpretation:
-        //     UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time, // 매일 반복
+        matchDateTimeComponents: DateTimeComponents.time,
         payload: 'morning',
       );
 
       AppLogger.i(
         'Morning notification scheduled at ${time.hour}:${time.minute.toString().padLeft(2, '0')}',
-        tag: 'NotificationService',
+        tag: _tag,
       );
     } catch (e, stackTrace) {
       AppLogger.e(
         'Failed to schedule morning notification',
-        tag: 'NotificationService',
+        tag: _tag,
         error: e,
         stackTrace: stackTrace,
       );
@@ -218,7 +234,7 @@ class NotificationService {
   /// 아침 알림 취소
   Future<void> cancelMorningNotification() async {
     await _notifications.cancel(_morningNotificationId);
-    AppLogger.i('Morning notification cancelled', tag: 'NotificationService');
+    AppLogger.i('Morning notification cancelled', tag: _tag);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -237,36 +253,20 @@ class NotificationService {
         '🌙 Good Evening!',
         '오늘 하루를 돌아보며 성찰해보세요',
         scheduledTime,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            _channelName,
-            channelDescription: _channelDescription,
-            importance: Importance.high,
-            priority: Priority.high,
-            icon: '@mipmap/ic_launcher',
-          ),
-          iOS: const DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          ),
-        ),
+        _getNotificationDetails(isHighPriority: true),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        // uiLocalNotificationDateInterpretation:
-        //     UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time, // 매일 반복
+        matchDateTimeComponents: DateTimeComponents.time,
         payload: 'evening',
       );
 
       AppLogger.i(
         'Evening notification scheduled at ${time.hour}:${time.minute.toString().padLeft(2, '0')}',
-        tag: 'NotificationService',
+        tag: _tag,
       );
     } catch (e, stackTrace) {
       AppLogger.e(
         'Failed to schedule evening notification',
-        tag: 'NotificationService',
+        tag: _tag,
         error: e,
         stackTrace: stackTrace,
       );
@@ -276,7 +276,7 @@ class NotificationService {
   /// 저녁 알림 취소
   Future<void> cancelEveningNotification() async {
     await _notifications.cancel(_eveningNotificationId);
-    AppLogger.i('Evening notification cancelled', tag: 'NotificationService');
+    AppLogger.i('Evening notification cancelled', tag: _tag);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -314,14 +314,11 @@ class NotificationService {
         await cancelEveningNotification();
       }
 
-      AppLogger.i(
-        'Notifications scheduled from settings',
-        tag: 'NotificationService',
-      );
+      AppLogger.i('Notifications scheduled from settings', tag: _tag);
     } catch (e, stackTrace) {
       AppLogger.e(
         'Failed to schedule notifications from settings',
-        tag: 'NotificationService',
+        tag: _tag,
         error: e,
         stackTrace: stackTrace,
       );
@@ -331,12 +328,69 @@ class NotificationService {
   /// 모든 알림 취소
   Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
-    AppLogger.i('All notifications cancelled', tag: 'NotificationService');
+    AppLogger.i('All notifications cancelled', tag: _tag);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 테스트 알림
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 테스트 알림 발송 (즉시)
+  Future<void> showTestNotification({
+    required String title,
+    required String body,
+  }) async {
+    await _initializeNotifications();
+
+    // 권한 확인
+    final hasPermission = await requestPermission();
+    if (!hasPermission) {
+      AppLogger.w('Notification permission not granted', tag: _tag);
+    }
+
+    await _notifications.show(
+      _testNotificationId,
+      title,
+      body,
+      _getNotificationDetails(isHighPriority: true),
+      payload: 'test',
+    );
+
+    AppLogger.d('Test notification shown: $title', tag: _tag);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
   // 유틸리티
   // ─────────────────────────────────────────────────────────────────────────
+
+  /// 알림 상세 설정 생성
+  NotificationDetails _getNotificationDetails({bool isHighPriority = false}) {
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        _channelId,
+        _channelName,
+        channelDescription: _channelDescription,
+        importance: isHighPriority ? Importance.max : Importance.high,
+        priority: isHighPriority ? Priority.max : Priority.high,
+        icon: '@mipmap/ic_launcher',
+        playSound: true,
+        enableVibration: true,
+        visibility: NotificationVisibility.public,
+        category: AndroidNotificationCategory.reminder,
+        fullScreenIntent: false,
+        autoCancel: true,
+        showWhen: true,
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        interruptionLevel: InterruptionLevel.timeSensitive,
+        // ✨ 앱이 foreground일 때도 알림 표시
+        presentBanner: true,
+      ),
+    );
+  }
 
   /// 다음 해당 시간 계산
   tz.TZDateTime _nextInstanceOfTime(TimeOfDay time) {
@@ -363,33 +417,23 @@ class NotificationService {
     return await _notifications.pendingNotificationRequests();
   }
 
-  /// 테스트 알림 발송
-  Future<void> showTestNotification({
-    required String title,
-    required String body,
-  }) async {
-    await _initializeNotifications();
+  /// 알림 권한 상태 확인
+  Future<bool> checkPermissionStatus() async {
+    try {
+      final androidPlugin = _notifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
 
-    await _notifications.show(
-      0,
-      title,
-      body,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channelId,
-          _channelName,
-          channelDescription: _channelDescription,
-          importance: Importance.high,
-          priority: Priority.high,
-        ),
-        iOS: const DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
-    );
+      if (androidPlugin != null) {
+        final areEnabled = await androidPlugin.areNotificationsEnabled();
+        return areEnabled ?? false;
+      }
 
-    AppLogger.d('Test notification shown: $title', tag: 'NotificationService');
+      return true; // iOS는 기본적으로 true 반환
+    } catch (e) {
+      AppLogger.e('Failed to check permission status', tag: _tag, error: e);
+      return false;
+    }
   }
 }
