@@ -19,10 +19,11 @@ import 'email_auth_screen.dart';
 /// Login Screen - 소셜 로그인 화면
 /// ═══════════════════════════════════════════════════════════════════════════
 ///
-/// Google / Apple / Email 로그인 화면
+/// Google / Apple / Kakao / Email 로그인 화면
 /// - 신규 가입 시에만 약관 동의 화면 표시
 /// - Google Sign In 버튼
 /// - Apple Sign In 버튼 (iOS만)
+/// - Kakao Sign In 버튼
 /// - 이메일 로그인 버튼
 /// - 프랭클린 Flow 브랜딩
 ///
@@ -193,34 +194,76 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  /// 카카오 로그인
+  Future<void> _handleKakaoSignIn() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      AppLogger.i('Starting Kakao Sign In', tag: 'LoginScreen');
+
+      final authService = AuthService();
+      final result = await authService.signInWithKakao();
+
+      await _handleLoginResult(result);
+    } catch (e, stackTrace) {
+      AppLogger.e(
+        'Kakao Sign In error',
+        tag: 'LoginScreen',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      setState(() {
+        _errorMessage = '카카오 로그인 중 오류가 발생했습니다.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   /// 이메일 로그인
   void _handleEmailSignIn() {
     if (_isLoading) return;
 
-    // Navigator.of(context).push(
-    //   MaterialPageRoute(
-    //     builder: (context) => EmailAuthScreen(
-    //       onSuccess: (AuthResult result) async {
-    //         Navigator.of(context).pop();
-    //
-    //         // 신규 사용자이고 아직 약관에 동의하지 않은 경우
-    //         if (result.isNewUser && !_hasAgreedToTerms()) {
-    //           AppLogger.i(
-    //             'New email user, showing terms agreement',
-    //             tag: 'LoginScreen',
-    //           );
-    //           await _showTermsAndComplete(result);
-    //         } else {
-    //           // 기존 사용자 또는 이미 약관 동의한 사용자
-    //           ref.read(currentUserProvider.notifier).state = result.user;
-    //           ref.read(authStateProvider.notifier).state =
-    //               AuthState.authenticated;
-    //           widget.onLoginSuccess();
-    //         }
-    //       },
-    //     ),
-    //   ),
-    //);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EmailAuthScreen(
+          onSuccess: () async {
+            Navigator.of(context).pop();
+
+            // 이메일 로그인 성공 후 현재 사용자 정보 가져오기
+            final authService = AuthService();
+            final currentUser = authService.getCurrentUser();
+
+            if (currentUser != null) {
+              // 약관 동의 여부 확인
+              if (!_hasAgreedToTerms()) {
+                AppLogger.i(
+                  'Email user needs terms agreement',
+                  tag: 'LoginScreen',
+                );
+                final result = AuthResult.success(currentUser, isNewUser: true);
+                await _showTermsAndComplete(result);
+              } else {
+                // 이미 약관 동의한 사용자
+                ref.read(currentUserProvider.notifier).state = currentUser;
+                ref.read(authStateProvider.notifier).state =
+                    AuthState.authenticated;
+                widget.onLoginSuccess();
+              }
+            }
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -409,6 +452,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ],
 
+        // 카카오 로그인 버튼
+        const SizedBox(height: AppSizes.spaceM),
+        _SocialLoginButton(
+          onTap: _handleKakaoSignIn,
+          isLoading: _isLoading,
+          icon: _buildKakaoIcon(),
+          label: AppStrings.signInWithKakao,
+          backgroundColor: const Color(0xFFFEE500), // 카카오 노란색
+          textColor: const Color(0xFF191919), // 카카오 텍스트 색상
+        ),
+
         // 구분선
         Padding(
           padding: const EdgeInsets.symmetric(vertical: AppSizes.spaceL),
@@ -422,7 +476,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   horizontal: AppSizes.paddingM,
                 ),
                 child: Text(
-                  '또는',
+                  AppStrings.authOr,
                   style: AppTextStyles.bodyS.copyWith(
                     color: AppColors.textTertiary,
                   ),
@@ -444,7 +498,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             color: AppColors.textSecondary,
             size: 24,
           ),
-          label: '이메일로 계속하기',
+          label: AppStrings.authContinueWithEmail,
           backgroundColor: AppColors.surface,
           textColor: AppColors.textPrimary,
           borderColor: AppColors.shadowDark.withOpacity(0.1),
@@ -463,6 +517,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         errorBuilder: (context, error, stackTrace) {
           return const Icon(Icons.g_mobiledata, color: Colors.red, size: 24);
         },
+      ),
+    );
+  }
+
+  /// 카카오 아이콘
+  Widget _buildKakaoIcon() {
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: const BoxDecoration(
+        color: Color(0xFF191919),
+        shape: BoxShape.circle,
+      ),
+      child: const Center(
+        child: Icon(Icons.chat_bubble, color: Color(0xFFFEE500), size: 14),
       ),
     );
   }
@@ -493,7 +562,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             children: [
               const TextSpan(text: '가입 시 '),
               TextSpan(
-                text: '이용약관',
+                text: AppStrings.termsOfService,
                 style: AppTextStyles.caption.copyWith(
                   color: AppColors.accentBlue,
                   decoration: TextDecoration.underline,
@@ -501,7 +570,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const TextSpan(text: ' 및 '),
               TextSpan(
-                text: '개인정보 처리방침',
+                text: AppStrings.privacyPolicy,
                 style: AppTextStyles.caption.copyWith(
                   color: AppColors.accentBlue,
                   decoration: TextDecoration.underline,

@@ -48,6 +48,7 @@ dependencies:
   flutter_naver_login: ^2.1.1
   flutter_local_notifications: ^19.5.0
   timezone: ^0.10.1
+  kakao_flutter_sdk_user: ^1.10.0
 
 flutter_launcher_icons:
   android: "launcher_icon"

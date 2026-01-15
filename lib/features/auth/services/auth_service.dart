@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter_naver_login/flutter_naver_login.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
 
 import '../../../core/utils/app_logger.dart';
 import '../config/auth_config.dart';
@@ -22,6 +23,8 @@ import '../models/user_model.dart';
 /// Firebase Authentication을 사용한 소셜 로그인 서비스
 /// - Google Sign In (웹/모바일)
 /// - Apple Sign In (iOS/macOS)
+/// - Kakao Sign In (모바일)
+/// - Naver Sign In (모바일)
 ///
 /// 사용법:
 ///   final authService = ref.read(authServiceProvider);
@@ -31,6 +34,8 @@ import '../models/user_model.dart';
 ///   - sign-in-cancelled: 사용자가 로그인을 취소함
 ///   - google-sign-in-failed: Google 로그인 실패
 ///   - apple-sign-in-failed: Apple 로그인 실패
+///   - kakao-sign-in-failed: Kakao 로그인 실패
+///   - naver-sign-in-failed: Naver 로그인 실패
 ///   - unknown-error: 알 수 없는 에러
 /// ═══════════════════════════════════════════════════════════════════════════
 
@@ -194,7 +199,7 @@ class AuthService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Apple Sign In (수정됨)
+  // Apple Sign In
   // ─────────────────────────────────────────────────────────────────────────
 
   Future<AuthResult> signInWithApple() async {
@@ -290,7 +295,7 @@ class AuthService {
       AppLogger.d('[Step 7] Decoding identityToken (JWT)...', tag: _tag);
       _logJwtContents(appleCredential.identityToken!, hashedNonce);
 
-      // ⭐⭐⭐ Step 8: Firebase OAuthCredential 생성 (핵심 수정) ⭐⭐⭐
+      // Step 8: Firebase OAuthCredential 생성
       AppLogger.d('[Step 8] Creating Firebase OAuthCredential...', tag: _tag);
       AppLogger.d('[Step 8] Provider: apple.com', tag: _tag);
       AppLogger.d(
@@ -500,6 +505,208 @@ class AuthService {
         throw Exception('Invalid base64 string');
     }
     return utf8.decode(base64Url.decode(output));
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 카카오 로그인
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 카카오 로그인
+  Future<AuthResult> signInWithKakao() async {
+    try {
+      AppLogger.i('═══════════════════════════════════════════════', tag: _tag);
+      AppLogger.i('Starting Kakao Sign In...', tag: _tag);
+      AppLogger.i('═══════════════════════════════════════════════', tag: _tag);
+
+      // Step 1: 웹 환경 체크
+      AppLogger.d('[Kakao Step 1] Checking platform...', tag: _tag);
+      if (kIsWeb) {
+        AppLogger.w(
+          'Kakao Sign In not supported on web in this app',
+          tag: _tag,
+        );
+        return AuthResult.failure(
+          'kakao-sign-in-unavailable',
+          '카카오 로그인은 웹에서 지원되지 않습니다.',
+        );
+      }
+      AppLogger.d('[Kakao Step 1] Platform check passed (not web)', tag: _tag);
+
+      // Step 2: 카카오톡 설치 여부 확인
+      AppLogger.d(
+        '[Kakao Step 2] Checking if KakaoTalk is installed...',
+        tag: _tag,
+      );
+      final isKakaoTalkInstalled = await kakao.isKakaoTalkInstalled();
+      AppLogger.d(
+        '[Kakao Step 2] KakaoTalk installed: $isKakaoTalkInstalled',
+        tag: _tag,
+      );
+
+      // Step 3: 로그인 시도
+      kakao.OAuthToken token;
+
+      if (isKakaoTalkInstalled) {
+        // 카카오톡으로 로그인
+        AppLogger.d(
+          '[Kakao Step 3] Attempting login with KakaoTalk app...',
+          tag: _tag,
+        );
+        try {
+          token = await kakao.UserApi.instance.loginWithKakaoTalk();
+          AppLogger.d('[Kakao Step 3] KakaoTalk login successful', tag: _tag);
+        } catch (e) {
+          AppLogger.w(
+            '[Kakao Step 3] KakaoTalk login failed, trying web login: $e',
+            tag: _tag,
+          );
+          // 카카오톡 로그인 실패 시 웹 로그인으로 폴백
+          token = await kakao.UserApi.instance.loginWithKakaoAccount();
+          AppLogger.d(
+            '[Kakao Step 3] Kakao Account web login successful',
+            tag: _tag,
+          );
+        }
+      } else {
+        // 카카오 계정으로 로그인 (웹뷰)
+        AppLogger.d(
+          '[Kakao Step 3] Attempting login with Kakao Account (web)...',
+          tag: _tag,
+        );
+        token = await kakao.UserApi.instance.loginWithKakaoAccount();
+        AppLogger.d('[Kakao Step 3] Kakao Account login successful', tag: _tag);
+      }
+
+      // Step 4: 토큰 정보 로깅
+      AppLogger.d('[Kakao Step 4] Token details:', tag: _tag);
+      AppLogger.d(
+        '  - accessToken: ${token.accessToken.isNotEmpty ? "EXISTS (${token.accessToken.length} chars)" : "NULL"}',
+        tag: _tag,
+      );
+      AppLogger.d(
+        '  - refreshToken: ${token.refreshToken?.isNotEmpty == true ? "EXISTS" : "NULL"}',
+        tag: _tag,
+      );
+      AppLogger.d('  - scopes: ${token.scopes}', tag: _tag);
+
+      // Step 5: 사용자 정보 가져오기
+      AppLogger.d('[Kakao Step 5] Fetching user info...', tag: _tag);
+      final kakaoUser = await kakao.UserApi.instance.me();
+      AppLogger.d('[Kakao Step 5] User info retrieved', tag: _tag);
+
+      // Step 6: 사용자 정보 로깅
+      AppLogger.d('[Kakao Step 6] User details:', tag: _tag);
+      AppLogger.d('  - id: ${kakaoUser.id}', tag: _tag);
+      AppLogger.d('  - connectedAt: ${kakaoUser.connectedAt}', tag: _tag);
+      AppLogger.d(
+        '  - kakaoAccount.email: ${kakaoUser.kakaoAccount?.email}',
+        tag: _tag,
+      );
+      AppLogger.d(
+        '  - kakaoAccount.profile.nickname: ${kakaoUser.kakaoAccount?.profile?.nickname}',
+        tag: _tag,
+      );
+      AppLogger.d(
+        '  - kakaoAccount.profile.profileImageUrl: ${kakaoUser.kakaoAccount?.profile?.profileImageUrl}',
+        tag: _tag,
+      );
+      AppLogger.d(
+        '  - kakaoAccount.profile.thumbnailImageUrl: ${kakaoUser.kakaoAccount?.profile?.thumbnailImageUrl}',
+        tag: _tag,
+      );
+
+      // Step 7: User 모델 생성
+      AppLogger.d('[Kakao Step 7] Creating User model...', tag: _tag);
+
+      final String userName =
+          kakaoUser.kakaoAccount?.profile?.nickname ??
+          kakaoUser.kakaoAccount?.name ??
+          '카카오 사용자';
+
+      final String email = kakaoUser.kakaoAccount?.email ?? '';
+
+      final user = User(
+        id: 'kakao_${kakaoUser.id}',
+        email: email,
+        name: userName,
+        profileImageUrl: kakaoUser.kakaoAccount?.profile?.profileImageUrl,
+        createdAt: kakaoUser.connectedAt ?? DateTime.now(),
+        lastLoginAt: DateTime.now(),
+        provider: 'kakao',
+      );
+
+      AppLogger.d('[Kakao Step 7] User model created', tag: _tag);
+
+      // Step 8: 성공 로깅
+      AppLogger.i('═══════════════════════════════════════════════', tag: _tag);
+      AppLogger.i('Kakao Sign In SUCCESSFUL!', tag: _tag);
+      AppLogger.i('  User: ${user.name}', tag: _tag);
+      AppLogger.i('  Email: ${user.email}', tag: _tag);
+      AppLogger.i('  ID: ${user.id}', tag: _tag);
+      AppLogger.i('═══════════════════════════════════════════════', tag: _tag);
+
+      // 카카오는 Firebase를 사용하지 않으므로 첫 로그인으로 간주
+      return AuthResult.success(user, isNewUser: true);
+    } on kakao.KakaoAuthException catch (e) {
+      AppLogger.e('═══════════════════════════════════════════════', tag: _tag);
+      AppLogger.e('Kakao Sign In FAILED (KakaoAuthException)', tag: _tag);
+      AppLogger.e('  Error: ${e.error}', tag: _tag);
+      AppLogger.e('  Message: ${e.message}', tag: _tag);
+      AppLogger.e('═══════════════════════════════════════════════', tag: _tag);
+
+      if (e.error == kakao.AuthErrorCause.accessDenied) {
+        return AuthResult.failure('sign-in-cancelled', '로그인이 취소되었습니다.');
+      }
+      return AuthResult.failure(
+        'kakao-sign-in-failed',
+        '카카오 로그인에 실패했습니다: ${e.message}',
+      );
+    } on kakao.KakaoClientException catch (e) {
+      AppLogger.e('═══════════════════════════════════════════════', tag: _tag);
+      AppLogger.e('Kakao Sign In FAILED (KakaoClientException)', tag: _tag);
+      AppLogger.e('  Message: ${e.message}', tag: _tag);
+      AppLogger.e('═══════════════════════════════════════════════', tag: _tag);
+
+      return AuthResult.failure(
+        'kakao-sign-in-failed',
+        '카카오 로그인에 실패했습니다: ${e.message}',
+      );
+    } catch (e, stackTrace) {
+      AppLogger.e('═══════════════════════════════════════════════', tag: _tag);
+      AppLogger.e('Kakao Sign In FAILED (Unknown Exception)', tag: _tag);
+      AppLogger.e('  Type: ${e.runtimeType}', tag: _tag);
+      AppLogger.e('  Error: $e', tag: _tag);
+      AppLogger.e('  StackTrace: $stackTrace', tag: _tag);
+      AppLogger.e('═══════════════════════════════════════════════', tag: _tag);
+
+      // 사용자 취소 체크
+      if (e.toString().contains('cancelled') ||
+          e.toString().contains('CANCELED')) {
+        return AuthResult.failure('sign-in-cancelled', '로그인이 취소되었습니다.');
+      }
+
+      return AuthResult.failure('kakao-sign-in-failed', '카카오 로그인에 실패했습니다.');
+    }
+  }
+
+  /// 카카오 로그아웃
+  Future<void> _signOutKakao() async {
+    try {
+      await kakao.UserApi.instance.logout();
+      AppLogger.d('Kakao Sign Out completed', tag: _tag);
+    } catch (e) {
+      AppLogger.w('Kakao Sign Out failed: $e', tag: _tag);
+    }
+  }
+
+  /// 카카오 연결 해제 (회원 탈퇴 시 사용)
+  Future<void> unlinkKakao() async {
+    try {
+      await kakao.UserApi.instance.unlink();
+      AppLogger.d('Kakao unlink completed', tag: _tag);
+    } catch (e) {
+      AppLogger.w('Kakao unlink failed: $e', tag: _tag);
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -715,6 +922,7 @@ class AuthService {
     try {
       AppLogger.i('Signing out...', tag: _tag);
 
+      // Google Sign Out
       try {
         if (await _googleSignIn.isSignedIn()) {
           await _googleSignIn.signOut();
@@ -724,6 +932,10 @@ class AuthService {
         AppLogger.w('Google Sign Out failed: $e', tag: _tag);
       }
 
+      // Kakao Sign Out
+      await _signOutKakao();
+
+      // Naver Sign Out
       try {
         await FlutterNaverLogin.logOut();
         AppLogger.d('Naver Sign Out completed', tag: _tag);
@@ -731,6 +943,7 @@ class AuthService {
         AppLogger.w('Naver Sign Out failed: $e', tag: _tag);
       }
 
+      // Firebase Sign Out
       await _firebaseAuth.signOut();
 
       AppLogger.i('Sign out successful', tag: _tag);
@@ -779,6 +992,9 @@ class AuthService {
       }
 
       AppLogger.i('Deleting account: ${user.email}', tag: _tag);
+
+      // 카카오 연결 해제
+      await unlinkKakao();
 
       await user.delete();
 

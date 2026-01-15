@@ -58,6 +58,14 @@
                 <string>com.googleusercontent.apps.109821855872-i95cnhurp0dk5dumu12kanisf8d1bojd</string>
             </array>
         </dict>
+        <dict>
+                <key>CFBundleTypeRole</key>
+                <string>Editor</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                    <string>kakaob017efe12d9d229ff065669aff2928ec</string>
+                </array>
+            </dict>
         <!-- Naver Sign In -->
         <dict>
             <key>CFBundleTypeRole</key>
@@ -85,5 +93,6 @@
     <string>gZ7vsSjWND</string>
     <key>naverServiceAppName</key>
     <string>Franklin Flow</string>
+
 </dict>
 </plist>

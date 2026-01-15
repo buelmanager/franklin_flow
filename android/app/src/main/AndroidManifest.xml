@@ -39,6 +39,8 @@
         <meta-data
             android:name="com.naver.sdk.clientName"
             android:value="Franklin Flow" />
+        <data android:scheme="kakaob017efe12d9d229ff065669aff2928ec" android:host="oauth"/>
+
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

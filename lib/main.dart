@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
 // Core
 import 'core/core.dart';
 
 // Features
+import 'features/auth/config/auth_config.dart';
 import 'features/home/home.dart';
 import 'features/analytics/analytics.dart';
 import 'features/schedule/schedule.dart';
@@ -36,6 +38,12 @@ void main() async {
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
     ),
+  );
+
+  // ⭐ 카카오 SDK 초기화 추가
+  KakaoSdk.init(
+    nativeAppKey: AuthConfig.kakaoNativeAppKey,
+    javaScriptAppKey: AuthConfig.kakaoJavaScriptKey,
   );
 
   AppLogger.i('앱 시작', tag: 'Main');
