@@ -195,7 +195,7 @@ class _MorningIntentionSectionState
   /// Task 선택 섹션
   Widget _buildTaskSelectionSection(List<Task> tasks) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // 섹션 헤더
         Row(
