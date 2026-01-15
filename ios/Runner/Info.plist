@@ -93,6 +93,10 @@
     <string>gZ7vsSjWND</string>
     <key>naverServiceAppName</key>
     <string>Franklin Flow</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>remote-notification</string>
+    </array>
 
 </dict>
 </plist>

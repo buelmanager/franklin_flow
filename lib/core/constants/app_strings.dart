@@ -731,6 +731,33 @@ class AppStrings {
   /// 개인정보 처리방침
   static const String privacyPolicy = '개인정보 처리방침';
 
+  static const String settingsDefaultName = '사용자';
+  static const String settingsNameSaved = '이름이 저장되었습니다';
+  static const String settingsTimeChanged = '시간이 변경되었습니다';
+
+  static const String splashSettingUpNotifications = '알림 설정 중...';
+
+  // 설정 - 알림 테스트
+  static const String settingsTestNotification = '알림 테스트';
+  static const String settingsTestNotificationDesc = '즉시 테스트 알림을 발송합니다';
+  static const String settingsTestNotificationDialogDesc = '어떤 알림을 테스트하시겠습니까?';
+  static const String settingsTestNotificationSent = '테스트 알림이 발송되었습니다';
+  static const String settingsTestNotificationFailed = '알림 발송에 실패했습니다';
+
+  // 설정 - 알림 권한
+  static const String settingsNotificationPermission = '알림 권한';
+  static const String settingsNotificationPermissionDenied = '알림 권한이 거부되었습니다';
+  static const String settingsNotificationPermissionDeniedDesc =
+      '알림을 받으려면 설정에서 권한을 허용해주세요';
+  static const String settingsNotificationPermissionBtn = '설정으로 이동';
+  static const String settingsNotificationPermissionGranted = '알림 권한이 허용되었습니다';
+  static const String settingsNotificationPermissionStatus = '권한 상태';
+  static const String settingsNotificationPermissionEnabled = '허용됨';
+  static const String settingsNotificationPermissionDisabled = '거부됨';
+  static const String settingsNotificationCheckPermission = '권한 확인';
+  static const String settingsNotificationCheckPermissionDesc =
+      '현재 알림 권한 상태를 확인합니다';
+
   /// 현재 시간에 따른 인사말 반환
   static String getGreeting() {
     final hour = DateTime.now().hour;
