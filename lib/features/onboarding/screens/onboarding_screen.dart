@@ -1,24 +1,32 @@
 // lib/features/onboarding/screens/onboarding_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/core.dart';
 import '../../../services/local_storage_service.dart';
+import '../../../services/notification_service.dart';
+import '../../auth/services/auth_service.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// 온보딩 화면 (Onboarding Screen)
 /// ═══════════════════════════════════════════════════════════════════════════
+///
+/// 로그인 후 최초 사용자 설정 화면
+/// - 로그인 정보에서 사용자 이름을 가져와 기본값으로 설정
+/// - 사용자 이름이 없으면 입력 요청
+/// ═══════════════════════════════════════════════════════════════════════════
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   final VoidCallback onComplete;
 
   const OnboardingScreen({Key? key, required this.onComplete})
     : super(key: key);
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   late PageController _pageController;
   int _currentPage = 0;
   final int _totalPages = 4;
@@ -35,6 +43,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.initState();
     _pageController = PageController();
     AppLogger.d('OnboardingScreen init', tag: 'OnboardingScreen');
+
+    // 로그인 정보에서 사용자 이름 가져오기
+    _loadUserName();
+  }
+
+  /// 로그인 정보에서 사용자 이름 가져오기
+  void _loadUserName() {
+    final currentUser = ref.read(currentUserProvider);
+
+    if (currentUser != null && currentUser.name.isNotEmpty) {
+      // 로그인 정보에서 이름 가져오기
+      _nameController.text = currentUser.displayName;
+      AppLogger.i(
+        'User name loaded from login: ${currentUser.displayName}',
+        tag: 'OnboardingScreen',
+      );
+    } else {
+      // 이름이 없으면 빈 칸
+      AppLogger.d(
+        'No user name found, prompting for input',
+        tag: 'OnboardingScreen',
+      );
+    }
   }
 
   @override
@@ -355,6 +386,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   // ─────────────────────────────────────────────────────────────────────────
 
   Widget _buildNamePage() {
+    final currentUser = ref.watch(currentUserProvider);
+    final hasDefaultName = _nameController.text.isNotEmpty;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSizes.paddingL),
       child: Column(
@@ -372,8 +406,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: AppSizes.spaceS),
           Text(
-            AppStrings.onboardingNameDesc,
+            hasDefaultName
+                ? '로그인 정보에서 가져왔어요. 변경하셔도 됩니다.'
+                : AppStrings.onboardingNameDesc,
             style: AppTextStyles.bodyM.copyWith(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSizes.spaceL),
           NeumorphicContainer(
@@ -426,6 +463,82 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
           ],
+          // 로그인 정보 표시
+          if (currentUser != null) ...[
+            const SizedBox(height: AppSizes.spaceXL),
+            Container(
+              padding: const EdgeInsets.all(AppSizes.paddingM),
+              decoration: BoxDecoration(
+                color: AppColors.accentBlue.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(AppSizes.radiusM),
+                border: Border.all(
+                  color: AppColors.accentBlue.withOpacity(0.1),
+                ),
+              ),
+              child: Row(
+                children: [
+                  // 프로필 아바타
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.accentBlue.withOpacity(0.8),
+                          AppColors.accentPurple.withOpacity(0.8),
+                        ],
+                      ),
+                    ),
+                    child: currentUser.profileImageUrl != null
+                        ? ClipOval(
+                            child: Image.network(
+                              currentUser.profileImageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Center(
+                                child: Text(
+                                  currentUser.initials,
+                                  style: AppTextStyles.labelM.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        : Center(
+                            child: Text(
+                              currentUser.initials,
+                              style: AppTextStyles.labelM.copyWith(
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                  ),
+                  const SizedBox(width: AppSizes.spaceM),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          currentUser.email,
+                          style: AppTextStyles.bodyS.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        if (currentUser.provider != null)
+                          Text(
+                            '${currentUser.providerDisplayName}로 로그인',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: AppSizes.spaceXL * 2),
         ],
       ),
@@ -441,9 +554,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       padding: const EdgeInsets.all(AppSizes.paddingL),
       child: Column(
         children: [
-          const SizedBox(height: AppSizes.spaceL),
+          const SizedBox(height: AppSizes.spaceXL),
           _buildIconCircle(
-            icon: Icons.notifications_none_rounded,
+            icon: Icons.notifications_outlined,
             color: AppColors.accentPurple,
           ),
           const SizedBox(height: AppSizes.spaceL),
@@ -456,48 +569,48 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Text(
             AppStrings.onboardingNotificationDesc,
             style: AppTextStyles.bodyM.copyWith(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: AppSizes.spaceL),
-          _buildNotificationCard(
+          const SizedBox(height: AppSizes.spaceXL),
+          _buildAlarmCard(
             icon: Icons.wb_sunny_outlined,
             title: AppStrings.onboardingMorningAlarm,
-            description: AppStrings.onboardingMorningAlarmDesc,
+            subtitle: AppStrings.onboardingMorningAlarmDesc,
             time: _morningTime,
             enabled: _morningAlarmEnabled,
             color: AppColors.accentOrange,
-            onTimePressed: () => _selectTime(true),
-            onToggle: (v) => setState(() => _morningAlarmEnabled = v),
+            onTimeTap: () => _selectTime(true),
+            onToggle: (value) {
+              setState(() => _morningAlarmEnabled = value);
+            },
           ),
           const SizedBox(height: AppSizes.spaceM),
-          _buildNotificationCard(
+          _buildAlarmCard(
             icon: Icons.nightlight_outlined,
             title: AppStrings.onboardingEveningAlarm,
-            description: AppStrings.onboardingEveningAlarmDesc,
+            subtitle: AppStrings.onboardingEveningAlarmDesc,
             time: _eveningTime,
             enabled: _eveningAlarmEnabled,
             color: AppColors.accentPurple,
-            onTimePressed: () => _selectTime(false),
-            onToggle: (v) => setState(() => _eveningAlarmEnabled = v),
+            onTimeTap: () => _selectTime(false),
+            onToggle: (value) {
+              setState(() => _eveningAlarmEnabled = value);
+            },
           ),
-          const SizedBox(height: AppSizes.spaceM),
-          Text(
-            AppStrings.onboardingNotificationLater,
-            style: AppTextStyles.bodyS.copyWith(color: AppColors.textTertiary),
-          ),
-          const SizedBox(height: AppSizes.spaceL),
+          const SizedBox(height: AppSizes.spaceXL),
         ],
       ),
     );
   }
 
-  Widget _buildNotificationCard({
+  Widget _buildAlarmCard({
     required IconData icon,
     required String title,
-    required String description,
+    required String subtitle,
     required TimeOfDay time,
     required bool enabled,
     required Color color,
-    required VoidCallback onTimePressed,
+    required VoidCallback onTimeTap,
     required ValueChanged<bool> onToggle,
   }) {
     return NeumorphicContainer(
@@ -507,13 +620,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppSizes.radiusS),
+                  color: color.withOpacity(enabled ? 0.1 : 0.05),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusM),
                 ),
-                child: Icon(icon, size: 20, color: color),
+                child: Icon(
+                  icon,
+                  size: 22,
+                  color: enabled ? color : AppColors.textTertiary,
+                ),
               ),
               const SizedBox(width: AppSizes.spaceM),
               Expanded(
@@ -524,10 +641,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       title,
                       style: AppTextStyles.bodyM.copyWith(
                         fontWeight: FontWeight.w600,
+                        color: enabled
+                            ? AppColors.textPrimary
+                            : AppColors.textTertiary,
                       ),
                     ),
                     Text(
-                      description,
+                      subtitle,
                       style: AppTextStyles.bodyS.copyWith(
                         color: AppColors.textTertiary,
                       ),
@@ -535,38 +655,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ],
                 ),
               ),
-              Switch.adaptive(
-                value: enabled,
-                onChanged: onToggle,
-                activeColor: color,
-              ),
+              Switch(value: enabled, onChanged: onToggle, activeColor: color),
             ],
           ),
           if (enabled) ...[
             const SizedBox(height: AppSizes.spaceM),
             GestureDetector(
-              onTap: onTimePressed,
+              onTap: onTimeTap,
               child: Container(
-                width: double.infinity,
                 padding: const EdgeInsets.symmetric(
-                  vertical: AppSizes.paddingM,
+                  horizontal: AppSizes.paddingM,
+                  vertical: AppSizes.paddingS,
                 ),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.08),
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(AppSizes.radiusM),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.access_time, size: 18, color: color),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 8),
                     Text(
                       _formatTime(time),
                       style: AppTextStyles.heading4.copyWith(
                         color: color,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    Icon(Icons.edit, size: 14, color: color.withOpacity(0.5)),
                   ],
                 ),
               ),
@@ -582,32 +700,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   // ─────────────────────────────────────────────────────────────────────────
 
   Widget _buildCompletePage() {
-    final userName = _nameController.text.isNotEmpty
-        ? _nameController.text
-        : '사용자';
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSizes.paddingL),
       child: Column(
         children: [
-          const SizedBox(height: AppSizes.spaceL),
+          const SizedBox(height: AppSizes.spaceXL),
           _buildSuccessIcon(),
           const SizedBox(height: AppSizes.spaceL),
           Text(
-            '$userName님,',
-            style: AppTextStyles.heading3.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            _nameController.text.isNotEmpty
+                ? '${_nameController.text}님,\n준비가 완료되었습니다!'
+                : AppStrings.onboardingCompleteTitle,
+            style: AppTextStyles.heading2.copyWith(fontWeight: FontWeight.w600),
+            textAlign: TextAlign.center,
           ),
-          Text(
-            AppStrings.onboardingCompleteTitle,
-            style: AppTextStyles.heading1.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: AppSizes.spaceL),
+          const SizedBox(height: AppSizes.spaceXL),
           _buildSummaryCard(),
-          const SizedBox(height: AppSizes.spaceM),
-          _buildGuideCard(),
           const SizedBox(height: AppSizes.spaceL),
+          _buildGuideCard(),
+          const SizedBox(height: AppSizes.spaceXL),
         ],
       ),
     );
@@ -857,7 +968,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _completeOnboarding() async {
     try {
       final storage = LocalStorageService();
+      final notificationService = NotificationService();
 
+      // 설정 저장
       await storage.saveSetting('userName', _nameController.text);
       await storage.saveSetting('morningReminderHour', _morningTime.hour);
       await storage.saveSetting('morningReminderMinute', _morningTime.minute);
@@ -867,8 +980,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await storage.saveSetting('eveningAlarmEnabled', _eveningAlarmEnabled);
       await storage.saveSetting('onboardingCompleted', true);
 
+      // 알림 권한 요청
+      final permissionGranted = await notificationService.requestPermission();
+      AppLogger.d(
+        'Notification permission: $permissionGranted',
+        tag: 'OnboardingScreen',
+      );
+
+      // 알림 스케줄링
+      if (_morningAlarmEnabled) {
+        await notificationService.scheduleMorningNotification(_morningTime);
+      }
+      if (_eveningAlarmEnabled) {
+        await notificationService.scheduleEveningNotification(_eveningTime);
+      }
+
       AppLogger.i(
-        'Onboarding completed - userName: ${_nameController.text}',
+        'Onboarding completed - userName: ${_nameController.text}, '
+        'morning: $_morningAlarmEnabled (${_formatTime(_morningTime)}), '
+        'evening: $_eveningAlarmEnabled (${_formatTime(_eveningTime)})',
         tag: 'OnboardingScreen',
       );
 

@@ -70,6 +70,28 @@ class AppTextStyles {
   );
 
   // ─────────────────────────────────────────────────────────────────────────
+  // 레거시 호환 / Alias (기존 코드 호환용)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// bodyM의 alias
+  static TextStyle get bodyMedium => bodyM;
+
+  /// bodyS의 alias
+  static TextStyle get bodySmall => bodyS;
+
+  /// bodyL의 alias
+  static TextStyle get bodyLarge => bodyL;
+
+  /// 큰 버튼 텍스트 (16px, SemiBold)
+  static TextStyle get buttonLarge => TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textPrimary,
+    letterSpacing: 0,
+    height: 1.4,
+  );
+
+  // ─────────────────────────────────────────────────────────────────────────
   // 본문 스타일 (내용용)
   // ─────────────────────────────────────────────────────────────────────────
 

@@ -1,21 +1,26 @@
 // lib/main.dart
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
 // Core
 import 'core/core.dart';
 
 // Features
+import 'features/auth/config/auth_config.dart';
 import 'features/home/home.dart';
 import 'features/analytics/analytics.dart';
 import 'features/schedule/schedule.dart';
 import 'features/settings/settings.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
+import 'features/auth/auth.dart';
 
 // Services
+import 'firebase_options.dart';
 import 'services/local_storage_service.dart';
 
 // Models
@@ -25,6 +30,8 @@ void main() async {
   // Flutter 바인딩 초기화
   WidgetsFlutterBinding.ensureInitialized();
 
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   // 상태바 스타일 설정
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -33,21 +40,17 @@ void main() async {
     ),
   );
 
+  // ⭐ 카카오 SDK 초기화 추가
+  KakaoSdk.init(
+    nativeAppKey: AuthConfig.kakaoNativeAppKey,
+    javaScriptAppKey: AuthConfig.kakaoJavaScriptKey,
+  );
+
   AppLogger.i('앱 시작', tag: 'Main');
 
-  // Hive 초기화
-  try {
-    AppLogger.i('Hive 초기화 시작...', tag: 'Main');
-    await LocalStorageService.init();
-    AppLogger.i('Hive 초기화 완료', tag: 'Main');
+  // FocusSession 어댑터 등록 (Splash에서 다른 어댑터들 등록)
+  if (!Hive.isAdapterRegistered(5)) {
     Hive.registerAdapter(FocusSessionAdapter());
-
-    // Box 열기
-    AppLogger.i('Storage Box 열기 시작...', tag: 'Main');
-    await LocalStorageService().openBoxes();
-    AppLogger.i('Storage Box 열기 완료', tag: 'Main');
-  } catch (e, stackTrace) {
-    AppLogger.e('Hive 초기화 실패', tag: 'Main', error: e, stackTrace: stackTrace);
   }
 
   // ProviderScope로 앱 전체 감싸기
@@ -77,12 +80,14 @@ class FranklinFlowApp extends StatelessWidget {
 }
 
 /// ═══════════════════════════════════════════════════════════════════════════
-/// 앱 루트 - 온보딩 체크
+/// 앱 루트 - Splash → Auth → Onboarding → Main 흐름 관리
 /// ═══════════════════════════════════════════════════════════════════════════
 ///
-/// 앱 시작 시 온보딩 완료 여부를 확인하여
-/// - 미완료: OnboardingScreen 표시
-/// - 완료: MainNavigator 표시
+/// 앱 시작 시 다음 순서로 화면 전환:
+/// 1. SplashScreen - 앱 초기화 (Firebase, Hive)
+/// 2. LoginScreen - 소셜 로그인 (미인증 시)
+/// 3. OnboardingScreen - 온보딩 (미완료 시)
+/// 4. MainNavigator - 메인 화면
 /// ═══════════════════════════════════════════════════════════════════════════
 
 class AppRoot extends StatefulWidget {
@@ -93,92 +98,84 @@ class AppRoot extends StatefulWidget {
 }
 
 class _AppRootState extends State<AppRoot> {
-  bool _isLoading = true;
-  bool _onboardingCompleted = false;
+  // 현재 표시할 화면
+  _AppScreen _currentScreen = _AppScreen.splash;
 
   @override
   void initState() {
     super.initState();
-    _checkOnboardingStatus();
+    AppLogger.i('AppRoot initialized', tag: 'AppRoot');
   }
 
-  Future<void> _checkOnboardingStatus() async {
-    try {
-      final storage = LocalStorageService();
-      final completed =
-          storage.getSetting<bool>('onboardingCompleted') ?? false;
+  /// Splash 완료 후 처리
+  void _onSplashComplete(SplashResult result) {
+    AppLogger.i('Splash complete: $result', tag: 'AppRoot');
 
-      AppLogger.d(
-        'Onboarding status check: completed = $completed',
-        tag: 'AppRoot',
-      );
-
-      setState(() {
-        _onboardingCompleted = completed;
-        _isLoading = false;
-      });
-    } catch (e, stackTrace) {
-      AppLogger.e(
-        'Failed to check onboarding status',
-        tag: 'AppRoot',
-        error: e,
-        stackTrace: stackTrace,
-      );
-
-      // 에러 시 온보딩 표시
-      setState(() {
-        _onboardingCompleted = false;
-        _isLoading = false;
-      });
-    }
+    setState(() {
+      switch (result) {
+        case SplashResult.authenticatedWithOnboarding:
+          // 로그인됨 + 온보딩 완료 → 메인 화면
+          _currentScreen = _AppScreen.main;
+          break;
+        case SplashResult.authenticatedNeedsOnboarding:
+          // 로그인됨 + 온보딩 미완료 → 온보딩 화면
+          _currentScreen = _AppScreen.onboarding;
+          break;
+        case SplashResult.unauthenticated:
+        case SplashResult.error:
+          // 로그인 안됨 또는 에러 → 로그인 화면
+          _currentScreen = _AppScreen.login;
+          break;
+      }
+    });
   }
 
+  /// 로그인 성공 후 처리
+  void _onLoginSuccess() {
+    AppLogger.i('Login success, checking onboarding status', tag: 'AppRoot');
+
+    // 온보딩 상태 확인
+    final storage = LocalStorageService();
+    final onboardingCompleted =
+        storage.getSetting<bool>('onboardingCompleted') ?? false;
+
+    setState(() {
+      if (onboardingCompleted) {
+        _currentScreen = _AppScreen.main;
+      } else {
+        _currentScreen = _AppScreen.onboarding;
+      }
+    });
+  }
+
+  /// 온보딩 완료 후 처리
   void _onOnboardingComplete() {
     AppLogger.i('Onboarding completed, navigating to main', tag: 'AppRoot');
     setState(() {
-      _onboardingCompleted = true;
+      _currentScreen = _AppScreen.main;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // 로딩 중
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // 로고
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppColors.accentBlue.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text('🌅', style: TextStyle(fontSize: 40)),
-                ),
-              ),
-              const SizedBox(height: AppSizes.spaceL),
-              Text(AppStrings.appName, style: AppTextStyles.heading3),
-            ],
-          ),
-        ),
-      );
-    }
+    switch (_currentScreen) {
+      case _AppScreen.splash:
+        return SplashScreen(onComplete: _onSplashComplete);
 
-    // 온보딩 미완료 → OnboardingScreen
-    if (!_onboardingCompleted) {
-      return OnboardingScreen(onComplete: _onOnboardingComplete);
-    }
+      case _AppScreen.login:
+        return LoginScreen(onLoginSuccess: _onLoginSuccess);
 
-    // 온보딩 완료 → MainNavigator
-    return const MainNavigator();
+      case _AppScreen.onboarding:
+        return OnboardingScreen(onComplete: _onOnboardingComplete);
+
+      case _AppScreen.main:
+        return const MainNavigator();
+    }
   }
 }
+
+/// 앱 화면 열거형
+enum _AppScreen { splash, login, onboarding, main }
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// 메인 네비게이터

@@ -39,6 +39,16 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   flutter_riverpod: ^2.4.9
+  crypto: ^3.0.3    # 추가: 비밀번호 해시용
+  # Firebase 추가
+  firebase_core: ^3.8.1
+  firebase_auth: ^5.3.4
+  google_sign_in: ^6.2.2
+  sign_in_with_apple: ^6.1.4
+  flutter_naver_login: ^2.1.1
+  flutter_local_notifications: ^19.5.0
+  timezone: ^0.10.1
+  kakao_flutter_sdk_user: ^1.10.0
 
 flutter_launcher_icons:
   android: "launcher_icon"
@@ -117,3 +127,6 @@ flutter:
 
 
 # % flutter pub run flutter_launcher_icons
+
+# https://www.notion.so/2e9e1a92bb7980798a85e1b1ebd2c318?source=copy_link :: 이용약관
+# https://www.notion.so/2e9e1a92bb798045a0fec37002a3539b?source=copy_link :: 서비스 정보

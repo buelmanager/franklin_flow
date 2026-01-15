@@ -543,10 +543,193 @@ class AppStrings {
   static const String onboardingNext = '다음';
   static const String onboardingSkip = '건너뛰기';
   static const String onboardingBack = '이전';
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 아래 내용을 lib/core/constants/app_strings.dart 파일에 추가하세요
+  // 위치: class AppStrings { ... } 내부, 적절한 섹션에 추가
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Splash 화면
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static const String splashInitializing = '앱을 초기화하는 중...';
+  static const String splashCheckingAuth = '로그인 정보 확인 중...';
+  static const String splashLoading = '로딩 중...';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 인증 (Auth) - 로그인/회원가입
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // 제목
+  static const String authLoginTitle = '로그인';
+  static const String authLoginSubtitle = '계속하려면 로그인하세요';
+  static const String authSignUpTitle = '회원가입';
+  static const String authSignUpSubtitle = '새 계정을 만들어 시작하세요';
+
+  // 입력 필드 레이블
+  static const String authEmailLabel = '이메일';
+  static const String authEmailHint = 'example@email.com';
+  static const String authPasswordLabel = '비밀번호';
+  static const String authPasswordHint = '6자 이상 입력';
+  static const String authConfirmPasswordLabel = '비밀번호 확인';
+  static const String authConfirmPasswordHint = '비밀번호를 다시 입력';
+  static const String authNameLabel = '이름';
+  static const String authNameHint = '이름을 입력하세요';
+
+  // 버튼
+  static const String authLoginButton = '로그인';
+  static const String authSignUpButton = '회원가입';
+  static const String authLogoutButton = '로그아웃';
+  static const String authForgotPassword = '비밀번호를 잊으셨나요?';
+
+  // 모드 전환
+  static const String authNoAccount = '계정이 없으신가요?';
+  static const String authHaveAccount = '이미 계정이 있으신가요?';
+
+  // 유효성 검사 에러
+  static const String authEmailRequired = '이메일을 입력해주세요';
+  static const String authEmailInvalid = '올바른 이메일 형식이 아닙니다';
+  static const String authPasswordRequired = '비밀번호를 입력해주세요';
+  static const String authPasswordTooShort = '비밀번호는 6자 이상이어야 합니다';
+  static const String authConfirmPasswordRequired = '비밀번호 확인을 입력해주세요';
+  static const String authPasswordMismatch = '비밀번호가 일치하지 않습니다';
+  static const String authNameRequired = '이름을 입력해주세요';
+
+  // 인증 에러 메시지
+  static const String authErrorUserNotFound = '등록되지 않은 이메일입니다';
+  static const String authErrorWrongPassword = '비밀번호가 틀렸습니다';
+  static const String authErrorEmailInUse = '이미 사용 중인 이메일입니다';
+  static const String authErrorWeakPassword = '비밀번호가 너무 약합니다';
+  static const String authErrorInvalidEmail = '올바른 이메일 형식이 아닙니다';
+  static const String authErrorUnknown = '오류가 발생했습니다. 다시 시도해주세요';
+
+  // 성공 메시지
+  static const String authLoginSuccess = '로그인되었습니다';
+  static const String authSignUpSuccess = '회원가입이 완료되었습니다';
+  static const String authLogoutSuccess = '로그아웃되었습니다';
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 아래 내용을 lib/core/constants/app_strings.dart 파일에 추가하세요
+  // 위치: class AppStrings { ... } 내부, 적절한 섹션에 추가
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Splash 화면
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static const String splashLoadingData = '데이터 로딩 중...';
+  // ─────────────────────────────────────────────────────────────────────────
+  // 인증 (Auth) - 소셜 로그인
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // 소셜 로그인 버튼
+  static const String authSignInWithGoogle = 'Google로 계속하기';
+  static const String authSignInWithApple = 'Apple로 계속하기';
+
+  // 약관 안내
+  static const String authTermsNotice =
+      '로그인 시 서비스 이용약관 및 개인정보처리방침에\n동의하는 것으로 간주됩니다.';
+
+  // 인증 에러 메시지
+  static const String authErrorCancelled = '로그인이 취소되었습니다';
+  static const String authErrorGoogleFailed = 'Google 로그인에 실패했습니다';
+  static const String authErrorAppleFailed = 'Apple 로그인에 실패했습니다';
+  static const String authErrorAppleUnavailable = 'Apple 로그인을 사용할 수 없습니다';
+  static const String authErrorNetworkFailed = '네트워크 연결을 확인해주세요';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 인증 관련 다이얼로그
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static const String authLogoutConfirmTitle = '로그아웃';
+  static const String authLogoutConfirmMessage = '정말 로그아웃 하시겠습니까?';
+  static const String authDeleteAccountTitle = '계정 삭제';
+  static const String authDeleteAccountMessage =
+      '계정을 삭제하면 모든 데이터가 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.';
+  static const String authDeleteAccountConfirm = '삭제';
+  static const String authReauthRequired = '보안을 위해 다시 로그인한 후 시도해주세요';
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AppStrings 추가 항목 - 카카오 로그인
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 이 내용을 app_strings.dart의 AppStrings 클래스에 추가하세요.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 소셜 로그인 버튼
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 카카오 로그인 버튼 텍스트
+  static const String signInWithKakao = '카카오로 시작하기';
+
+  /// 카카오 로그인 버튼 텍스트 (짧은 버전)
+  static const String kakaoLogin = '카카오 로그인';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 카카오 로그인 에러 메시지
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 카카오 로그인 실패
+  static const String errorKakaoSignInFailed = '카카오 로그인에 실패했습니다.';
+
+  /// 카카오 로그인 취소
+  static const String errorKakaoSignInCancelled = '카카오 로그인이 취소되었습니다.';
+
+  /// 카카오 로그인 웹 미지원
+  static const String errorKakaoSignInUnavailable = '카카오 로그인은 웹에서 지원되지 않습니다.';
+
+  /// 카카오 계정 정보 가져오기 실패
+  static const String errorKakaoAccountFailed = '카카오 계정 정보를 가져올 수 없습니다.';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 카카오 연결 관련
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 카카오 연결 해제 확인
+  static const String confirmKakaoUnlink = '카카오 계정 연결을 해제하시겠습니까?';
+
+  /// 카카오 연결 해제 완료
+  static const String kakaoUnlinkSuccess = '카카오 계정 연결이 해제되었습니다.';
+
+  /// 카카오 연결 해제 실패
+  static const String kakaoUnlinkFailed = '카카오 계정 연결 해제에 실패했습니다.';
+  // ─────────────────────────────────────────────────────────────────────────
+  // 인증 관련 다이얼로그
+  // ─────────────────────────────────────────────────────────────────────────
 
   // ─────────────────────────────────────────────────────────────────────────
   // 유틸리티 메서드
   // ─────────────────────────────────────────────────────────────────────────
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AppStrings 추가 항목 - 카카오 로그인 및 로그인 화면
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 이 내용을 app_strings.dart의 "인증 (Auth) - 소셜 로그인" 섹션에 추가하세요.
+  // 위치: authSignInWithApple 아래
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 카카오 로그인 (소셜 로그인 섹션에 추가)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 카카오 로그인 에러
+  static const String authErrorKakaoFailed = '카카오 로그인에 실패했습니다';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 로그인 화면 공통 (소셜 로그인 섹션에 추가)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 구분선 텍스트
+  static const String authOr = '또는';
+
+  /// 이메일로 계속하기 버튼
+  static const String authContinueWithEmail = '이메일로 계속하기';
+
+  /// 이용약관
+  static const String termsOfService = '이용약관';
+
+  /// 개인정보 처리방침
+  static const String privacyPolicy = '개인정보 처리방침';
 
   /// 현재 시간에 따른 인사말 반환
   static String getGreeting() {
