@@ -53,7 +53,7 @@ class GoalService {
 
   /// 목표 추가
   Future<Goal> addGoal({
-    required String emoji,
+    required int iconCodePoint,
     required String title,
     required int total,
     required int colorValue,
@@ -63,7 +63,7 @@ class GoalService {
 
     final newGoal = Goal(
       id: newId,
-      emoji: emoji,
+      iconCodePoint: iconCodePoint,
       title: title,
       current: current,
       total: total,
@@ -73,7 +73,7 @@ class GoalService {
     await _storage.saveGoal(newGoal);
 
     AppLogger.i(
-      'Goal added: ${newGoal.title} (${newGoal.emoji})',
+      'Goal added: ${newGoal.title}',
       tag: 'GoalService',
     );
 

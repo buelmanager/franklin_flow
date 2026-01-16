@@ -80,11 +80,12 @@ class TodaySummaryCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(taskListProvider);
-    final hasIntentions =
-        selectedTaskIds.isNotEmpty || freeIntentions.isNotEmpty;
+    // 존재하는 Task 의도만 카운트
+    final validTaskCount = _getValidTaskIntentionCount(tasks);
+    final hasIntentions = validTaskCount > 0 || freeIntentions.isNotEmpty;
 
     AppLogger.d(
-      'TodaySummaryCard build - intentions: ${selectedTaskIds.length + freeIntentions.length}',
+      'TodaySummaryCard build - intentions: ${validTaskCount + freeIntentions.length}',
       tag: 'TodaySummaryCard',
     );
 
@@ -158,7 +159,11 @@ class TodaySummaryCard extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('🔥', style: TextStyle(fontSize: 14)),
+          Icon(
+            Icons.local_fire_department_rounded,
+            size: 14,
+            color: AppColors.accentOrange,
+          ),
           const SizedBox(width: 4),
           Text(
             '$streak${AppStrings.streakDaySuffix}',
@@ -172,22 +177,19 @@ class TodaySummaryCard extends ConsumerWidget {
     );
   }
 
+  /// 존재하는 Task 의도 개수 (삭제된 Task 제외)
+  int _getValidTaskIntentionCount(List<Task> allTasks) {
+    return selectedTaskIds.where((taskId) {
+      return allTasks.any((t) => t.id == taskId);
+    }).length;
+  }
+
   /// 완료 개수 계산
   int _getCompletedCount(List<Task> allTasks) {
-    // 태스크 의도 중 완료된 것
+    // 태스크 의도 중 완료된 것 (존재하는 Task만)
     final completedTaskCount = selectedTaskIds.where((taskId) {
-      final task = allTasks.firstWhere(
-        (t) => t.id == taskId,
-        orElse: () => Task(
-          id: taskId,
-          title: '',
-          status: 'pending',
-          progress: 0,
-          timeInMinutes: 0,
-          categoryId: '',
-        ),
-      );
-      return task.isCompleted;
+      final task = allTasks.where((t) => t.id == taskId).firstOrNull;
+      return task != null && task.isCompleted;
     }).length;
 
     // 자유 의도 중 완료된 것
@@ -198,7 +200,9 @@ class TodaySummaryCard extends ConsumerWidget {
 
   /// 의도 요약
   Widget _buildIntentionSummary(List<Task> allTasks) {
-    final totalIntentions = selectedTaskIds.length + freeIntentions.length;
+    // 존재하는 Task 의도만 카운트
+    final validTaskCount = _getValidTaskIntentionCount(allTasks);
+    final totalIntentions = validTaskCount + freeIntentions.length;
     final completedCount = _getCompletedCount(allTasks);
 
     return Column(
@@ -288,20 +292,14 @@ class TodaySummaryCard extends ConsumerWidget {
   List<Widget> _buildIntentionList(List<Task> allTasks) {
     final List<Widget> items = [];
 
-    // Task 의도
+    // Task 의도 (존재하는 Task만 표시)
     for (int i = 0; i < selectedTaskIds.length; i++) {
       final taskId = selectedTaskIds[i];
-      final task = allTasks.firstWhere(
-        (t) => t.id == taskId,
-        orElse: () => Task(
-          id: taskId,
-          title: '삭제된 태스크',
-          status: 'pending',
-          progress: 0,
-          timeInMinutes: 0,
-          categoryId: '',
-        ),
-      );
+      final task = allTasks.where((t) => t.id == taskId).firstOrNull;
+
+      // 삭제된 Task는 건너뛰기
+      if (task == null) continue;
+
       items.add(
         _buildIntentionItem(
           title: task.title,
@@ -412,7 +410,11 @@ class TodaySummaryCard extends ConsumerWidget {
           ),
           child: Column(
             children: [
-              const Text('☀️', style: TextStyle(fontSize: 32)),
+              Icon(
+                Icons.wb_sunny_rounded,
+                size: 32,
+                color: AppColors.accentOrange,
+              ),
               const SizedBox(height: AppSizes.spaceS),
               Text(
                 AppStrings.todaySummaryNoIntention,
@@ -454,7 +456,9 @@ class TodaySummaryCard extends ConsumerWidget {
 
   /// 하단 통계 (의도 기준으로 통합)
   Widget _buildStats(List<Task> allTasks) {
-    final totalIntentions = selectedTaskIds.length + freeIntentions.length;
+    // 존재하는 Task 의도만 카운트
+    final validTaskCount = _getValidTaskIntentionCount(allTasks);
+    final totalIntentions = validTaskCount + freeIntentions.length;
     final completedCount = _getCompletedCount(allTasks);
 
     return Row(

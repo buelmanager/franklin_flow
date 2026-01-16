@@ -61,11 +61,13 @@ void main() async {
 /// 메인 앱
 /// ═══════════════════════════════════════════════════════════════════════════
 
-class FranklinFlowApp extends StatelessWidget {
+class FranklinFlowApp extends ConsumerWidget {
   const FranklinFlowApp({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDarkMode = ref.watch(themeModeProvider);
+
     return MaterialApp(
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
@@ -73,7 +75,23 @@ class FranklinFlowApp extends StatelessWidget {
         useMaterial3: true,
         brightness: Brightness.light,
         scaffoldBackgroundColor: AppColors.background,
+        colorScheme: ColorScheme.light(
+          primary: AppColors.accentBlue,
+          surface: AppColors.surface,
+          onSurface: AppColors.textPrimary,
+        ),
       ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: AppColors.backgroundDark,
+        colorScheme: ColorScheme.dark(
+          primary: AppColors.accentBlue,
+          surface: AppColors.surfaceDark,
+          onSurface: AppColors.textPrimaryDark,
+        ),
+      ),
+      themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: const AppRoot(),
     );
   }

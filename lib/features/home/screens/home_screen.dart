@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/core.dart';
 import '../../../core/constants/time_of_day_mode.dart';
 import '../../../shared/models/models.dart';
-import '../../../services/local_storage_service.dart';
 import '../../auth/services/auth_service.dart';
 import '../widgets/widgets.dart';
 
@@ -71,17 +70,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // 사용자 정보 가져오기
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// 사용자 이름 가져오기 (우선순위: LocalStorage > 로그인 정보 > 기본값)
+  /// 사용자 이름 가져오기 (Provider 사용 - 실시간 업데이트)
+  /// 우선순위: userNameProvider > 로그인 정보 > 기본값
   String _getUserName() {
-    // 1. LocalStorage에서 온보딩 시 저장한 이름 확인
-    final storage = LocalStorageService();
-    final savedName = storage.getSetting<String>('userName');
-    if (savedName != null && savedName.isNotEmpty) {
+    // 1. Provider에서 이름 가져오기 (watch로 실시간 반영)
+    final savedName = ref.watch(userNameProvider);
+    if (savedName.isNotEmpty) {
       return savedName;
     }
 
     // 2. 로그인 정보에서 이름 가져오기
-    final currentUser = ref.read(currentUserProvider);
+    final currentUser = ref.watch(currentUserProvider);
     if (currentUser != null && currentUser.name.isNotEmpty) {
       return currentUser.displayName;
     }
@@ -437,8 +436,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 현재 사용자 정보 watch
-    final currentUser = ref.watch(currentUserProvider);
+    // 다크 모드 상태
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    // 사용자 이름 (Provider에서 실시간 watch)
     final userName = _getUserName();
 
     // DailyRecord watch (반응형 업데이트)
@@ -450,29 +451,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       tag: _tag,
     );
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSizes.paddingL),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: AppSizes.spaceL),
+    return Container(
+      color: isDarkMode ? AppColors.backgroundDark : AppColors.background,
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSizes.paddingL),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: AppSizes.spaceL),
 
-            // 공통 헤더 (모든 모드에서 표시)
-            HomeHeader(
-              userName: userName,
-              notificationCount: 3,
-              onNotificationTap: _handleNotificationTap,
-              onProfileTap: _handleProfileTap,
-            ),
-            const SizedBox(height: AppSizes.spaceXL),
+              // 공통 헤더 (모든 모드에서 표시)
+              HomeHeader(
+                userName: userName,
+                notificationCount: 3,
+                onNotificationTap: _handleNotificationTap,
+                onProfileTap: _handleProfileTap,
+              ),
+              const SizedBox(height: AppSizes.spaceXL),
 
-            // 시간대별 콘텐츠
-            _buildModeContent(userName, todayRecord),
+              // 시간대별 콘텐츠
+              _buildModeContent(userName, todayRecord),
 
-            const SizedBox(height: 100),
-          ],
+              const SizedBox(height: 100),
+            ],
+          ),
         ),
       ),
     );

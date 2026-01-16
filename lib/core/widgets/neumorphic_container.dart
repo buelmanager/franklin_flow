@@ -73,24 +73,27 @@ class NeumorphicContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: width,
       height: height,
       padding: padding,
-      decoration: _buildDecoration(),
+      decoration: _buildDecoration(isDarkMode),
       child: child,
     );
   }
 
-  BoxDecoration _buildDecoration() {
-    final bgColor = backgroundColor ?? AppColors.surface;
+  BoxDecoration _buildDecoration(bool isDarkMode) {
+    final bgColor = backgroundColor ??
+        (isDarkMode ? AppColors.surfaceDark : AppColors.surface);
 
     switch (style) {
       case NeumorphicStyle.flat:
         return BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(borderRadius),
-          boxShadow: _buildFlatShadow(),
+          boxShadow: _buildFlatShadow(isDarkMode),
         );
 
       case NeumorphicStyle.convex:
@@ -102,22 +105,25 @@ class NeumorphicContainer extends StatelessWidget {
             colors: [_lighten(bgColor, 0.05), bgColor, _darken(bgColor, 0.05)],
             stops: const [0.0, 0.5, 1.0],
           ),
-          boxShadow: _buildFlatShadow(),
+          boxShadow: _buildFlatShadow(isDarkMode),
         );
 
       case NeumorphicStyle.concave:
         return BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(borderRadius),
-          boxShadow: _buildConcaveShadow(),
+          boxShadow: _buildConcaveShadow(isDarkMode),
         );
     }
   }
 
-  List<BoxShadow> _buildFlatShadow() {
+  List<BoxShadow> _buildFlatShadow(bool isDarkMode) {
+    final shadowDark = isDarkMode ? AppColors.shadowDarkMode : AppColors.shadowDark;
+    final shadowLight = isDarkMode ? AppColors.shadowLightMode : AppColors.shadowLight;
+
     return [
       BoxShadow(
-        color: AppColors.shadowDark.withOpacity(0.5 * shadowIntensity),
+        color: shadowDark.withOpacity(0.5 * shadowIntensity),
         offset: const Offset(
           AppSizes.neumorphicOffsetM,
           AppSizes.neumorphicOffsetM,
@@ -126,7 +132,7 @@ class NeumorphicContainer extends StatelessWidget {
         spreadRadius: 1,
       ),
       BoxShadow(
-        color: AppColors.shadowLight.withOpacity(0.9 * shadowIntensity),
+        color: shadowLight.withOpacity(isDarkMode ? 0.3 : 0.9 * shadowIntensity),
         offset: const Offset(
           -AppSizes.neumorphicOffsetM,
           -AppSizes.neumorphicOffsetM,
@@ -137,16 +143,19 @@ class NeumorphicContainer extends StatelessWidget {
     ];
   }
 
-  List<BoxShadow> _buildConcaveShadow() {
+  List<BoxShadow> _buildConcaveShadow(bool isDarkMode) {
+    final shadowDark = isDarkMode ? AppColors.shadowDarkMode : AppColors.shadowDark;
+    final shadowLight = isDarkMode ? AppColors.shadowLightMode : AppColors.shadowLight;
+
     return [
       BoxShadow(
-        color: AppColors.shadowDark.withOpacity(0.25 * shadowIntensity),
+        color: shadowDark.withOpacity(0.25 * shadowIntensity),
         offset: const Offset(2, 2),
         blurRadius: 4,
         spreadRadius: -1,
       ),
       BoxShadow(
-        color: AppColors.shadowLight.withOpacity(0.7 * shadowIntensity),
+        color: shadowLight.withOpacity(isDarkMode ? 0.2 : 0.7 * shadowIntensity),
         offset: const Offset(-1, -1),
         blurRadius: 3,
         spreadRadius: -1,

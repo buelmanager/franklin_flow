@@ -190,10 +190,19 @@ class _EveningReflectionSectionState
     );
   }
 
+  /// 존재하는 Task 의도만 카운트
+  int _getValidTaskIntentionCount(List<Task> allTasks) {
+    return widget.selectedTaskIds.where((taskId) {
+      return allTasks.any((t) => t.id == taskId);
+    }).length;
+  }
+
   /// 아침 계획 섹션
   Widget _buildMorningPlanSection(List<Task> allTasks) {
+    // 존재하는 Task 의도만 카운트
+    final validTaskCount = _getValidTaskIntentionCount(allTasks);
     final hasIntentions =
-        widget.selectedTaskIds.isNotEmpty || widget.freeIntentions.isNotEmpty;
+        validTaskCount > 0 || widget.freeIntentions.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -209,19 +218,12 @@ class _EveningReflectionSectionState
             style: NeumorphicStyle.flat,
             child: Column(
               children: [
-                // Task 의도
+                // Task 의도 (존재하는 Task만 표시)
                 ...widget.selectedTaskIds.map((taskId) {
-                  final task = allTasks.firstWhere(
-                    (t) => t.id == taskId,
-                    orElse: () => Task(
-                      id: taskId,
-                      title: '삭제된 태스크',
-                      status: 'pending',
-                      progress: 0,
-                      timeInMinutes: 0,
-                      categoryId: '',
-                    ),
-                  );
+                  final task = allTasks.where((t) => t.id == taskId).firstOrNull;
+                  // 삭제된 Task는 건너뛰기
+                  if (task == null) return const SizedBox.shrink();
+
                   return _buildIntentionItem(
                     title: task.title,
                     isCompleted: task.isCompleted,
@@ -472,7 +474,11 @@ class _EveningReflectionSectionState
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('🌙', style: const TextStyle(fontSize: 20)),
+              Icon(
+                Icons.nights_stay_rounded,
+                size: 20,
+                color: isEnabled ? AppColors.accentPurple : AppColors.textDisabled,
+              ),
               const SizedBox(width: AppSizes.spaceM),
               Text(
                 AppStrings.eveningFinishDay,

@@ -1,10 +1,17 @@
 // lib/features/settings/screens/settings_screen.dart
 
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../core/core.dart';
 import '../../../services/local_storage_service.dart';
 import '../../../services/notification_service.dart';
+import '../../../services/daily_record_service.dart';
+import '../../../services/task_service.dart';
+import '../../../services/goal_service.dart';
+import '../../../services/category_service.dart';
 import '../../auth/services/auth_service.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
@@ -31,9 +38,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   static const String _tag = 'SettingsScreen';
 
-  // 설정 상태
-  String _userName = '';
-  bool _isDarkMode = false;
+  // 설정 상태 (알림 관련만 - 이름, 다크모드는 Provider로 관리)
   bool _morningReminder = true;
   bool _eveningReminder = true;
   TimeOfDay _morningReminderTime = const TimeOfDay(hour: 6, minute: 0);
@@ -53,17 +58,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // 설정 로드
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// LocalStorage에서 설정 불러오기
+  /// LocalStorage에서 설정 불러오기 (알림 설정만)
   Future<void> _loadSettings() async {
     try {
       final storage = LocalStorageService();
-
-      // 사용자 이름 (온보딩 저장값 → 로그인 정보 → 기본값)
-      String userName = storage.getSetting<String>('userName') ?? '';
-      if (userName.isEmpty) {
-        final currentUser = ref.read(currentUserProvider);
-        userName = currentUser?.displayName ?? '';
-      }
 
       // 알림 설정
       final morningEnabled =
@@ -79,11 +77,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final eveningMinute =
           storage.getSetting<int>('eveningReminderMinute') ?? 0;
 
-      // 다크 모드
-      final isDarkMode = storage.getSetting<bool>('isDarkMode') ?? false;
-
       setState(() {
-        _userName = userName;
         _morningReminder = morningEnabled;
         _eveningReminder = eveningEnabled;
         _morningReminderTime = TimeOfDay(
@@ -94,12 +88,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           hour: eveningHour,
           minute: eveningMinute,
         );
-        _isDarkMode = isDarkMode;
         _isLoading = false;
       });
 
       AppLogger.i(
-        'Settings loaded - userName: $_userName, '
+        'Settings loaded - '
         'morning: $_morningReminder (${_formatTime(_morningReminderTime)}), '
         'evening: $_eveningReminder (${_formatTime(_eveningReminderTime)})',
         tag: _tag,
@@ -116,19 +109,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 설정 저장
+  // 설정 저장 (알림 관련)
   // ─────────────────────────────────────────────────────────────────────────
-
-  /// 사용자 이름 저장
-  Future<void> _saveUserName(String name) async {
-    try {
-      final storage = LocalStorageService();
-      await storage.saveSetting('userName', name);
-      AppLogger.i('User name saved: $name', tag: _tag);
-    } catch (e) {
-      AppLogger.e('Failed to save user name', tag: _tag, error: e);
-    }
-  }
 
   /// 아침 알림 활성화 저장
   Future<void> _saveMorningReminderEnabled(bool enabled) async {
@@ -220,17 +202,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  /// 다크 모드 저장
-  Future<void> _saveDarkMode(bool enabled) async {
-    try {
-      final storage = LocalStorageService();
-      await storage.saveSetting('isDarkMode', enabled);
-      AppLogger.i('Dark mode saved: $enabled', tag: _tag);
-    } catch (e) {
-      AppLogger.e('Failed to save dark mode', tag: _tag, error: e);
-    }
-  }
-
   // ─────────────────────────────────────────────────────────────────────────
   // 빌드
   // ─────────────────────────────────────────────────────────────────────────
@@ -260,9 +231,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             _buildProfileSection(),
             const SizedBox(height: AppSizes.spaceXL),
 
-            // 테마 섹션
-            _buildThemeSection(),
-            const SizedBox(height: AppSizes.spaceXL),
+            // TODO: 다크모드 기능 - 추후 활성화
+            // // 테마 섹션
+            // _buildThemeSection(),
+            // const SizedBox(height: AppSizes.spaceXL),
 
             // 알림 섹션
             _buildNotificationSection(),
@@ -288,6 +260,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   /// 프로필 섹션
   Widget _buildProfileSection() {
+    final userName = ref.watch(userNameProvider);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -312,7 +287,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
+                    userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
                     style: AppTextStyles.heading2.copyWith(color: Colors.white),
                   ),
                 ),
@@ -325,16 +300,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _userName.isNotEmpty
-                          ? _userName
+                      userName.isNotEmpty
+                          ? userName
                           : AppStrings.settingsDefaultName,
-                      style: AppTextStyles.heading3,
+                      style: AppTextStyles.heading3.copyWith(
+                        color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       AppStrings.settingsProfileDescription,
                       style: AppTextStyles.caption.copyWith(
-                        color: AppColors.textTertiary,
+                        color: isDarkMode ? AppColors.textTertiaryDark : AppColors.textTertiary,
                       ),
                     ),
                   ],
@@ -355,6 +332,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   /// 테마 섹션
   Widget _buildThemeSection() {
+    final isDarkMode = ref.watch(themeModeProvider);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -370,20 +349,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: AppStrings.settingsDarkMode,
                 subtitle: AppStrings.settingsDarkModeDescription,
                 trailing: Switch.adaptive(
-                  value: _isDarkMode,
-                  onChanged: (value) {
-                    setState(() => _isDarkMode = value);
-                    _saveDarkMode(value);
+                  value: isDarkMode,
+                  onChanged: (value) async {
+                    await ref.read(themeModeProvider.notifier).setDarkMode(value);
                     AppLogger.ui('Dark mode: $value', screen: _tag);
-                    // TODO: 실제 다크 모드 적용
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(AppStrings.settingsComingSoon),
-                        backgroundColor: AppColors.accentOrange,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            value ? '다크 모드가 활성화되었습니다' : '라이트 모드가 활성화되었습니다',
+                          ),
+                          backgroundColor: AppColors.accentBlue,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
                   },
+                  activeTrackColor: AppColors.accentBlue.withValues(alpha: 0.5),
                   activeColor: AppColors.accentBlue,
                 ),
               ),
@@ -750,21 +733,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           padding: const EdgeInsets.all(AppSizes.paddingL),
           child: Column(
             children: [
-              // 데이터 내보내기
-              _buildSettingRow(
-                icon: Icons.upload_outlined,
-                title: AppStrings.settingsExport,
-                subtitle: AppStrings.settingsExportDescription,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(AppStrings.settingsComingSoon),
-                      backgroundColor: AppColors.accentOrange,
-                    ),
-                  );
-                },
-              ),
-              const Divider(height: AppSizes.spaceXL),
+              // TODO: 데이터 내보내기 기능 - 추후 활성화
+              // // 데이터 내보내기
+              // _buildSettingRow(
+              //   icon: Icons.upload_outlined,
+              //   title: AppStrings.settingsExport,
+              //   subtitle: AppStrings.settingsExportDescription,
+              //   onTap: _exportData,
+              // ),
+              // const Divider(height: AppSizes.spaceXL),
 
               // 데이터 초기화
               _buildSettingRow(
@@ -779,6 +756,286 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ],
     );
+  }
+
+  /// 데이터 내보내기 실행
+  Future<void> _exportData() async {
+    try {
+      // 로딩 표시
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Center(
+            child: Container(
+              padding: const EdgeInsets.all(AppSizes.paddingXL),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppSizes.radiusL),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: AppSizes.spaceM),
+                  Text('데이터 준비 중...', style: AppTextStyles.bodyM),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      // 데이터 수집
+      final exportData = await _collectExportData();
+
+      // JSON 변환
+      final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
+
+      // 다이얼로그 닫기
+      if (mounted) Navigator.of(context).pop();
+
+      // 내보내기 옵션 선택
+      _showExportOptionsDialog(jsonString);
+
+      AppLogger.i('Data export prepared: ${jsonString.length} bytes', tag: _tag);
+    } catch (e, stackTrace) {
+      AppLogger.e('Failed to export data', tag: _tag, error: e, stackTrace: stackTrace);
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('데이터 내보내기에 실패했습니다'),
+            backgroundColor: AppColors.accentRed,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 내보낼 데이터 수집
+  Future<Map<String, dynamic>> _collectExportData() async {
+    final dailyRecordService = DailyRecordService();
+    final taskService = TaskService();
+    final goalService = GoalService();
+    final categoryService = CategoryService();
+    final storage = LocalStorageService();
+
+    // DailyRecords
+    final records = dailyRecordService.getAllRecords();
+    final recordsData = records.map((r) => {
+      'date': r.date.toIso8601String(),
+      'selectedTaskIds': r.selectedTaskIds,
+      'freeIntentions': r.freeIntentions,
+      'freeIntentionCompleted': r.freeIntentionCompleted,
+      'eveningReflection': r.eveningReflection,
+      'satisfactionRating': r.satisfactionRating,
+      'morningCompletedAt': r.morningCompletedAt?.toIso8601String(),
+      'eveningCompletedAt': r.eveningCompletedAt?.toIso8601String(),
+    }).toList();
+
+    // Tasks
+    final tasks = taskService.tasks;
+    final tasksData = tasks.map((t) => {
+      'id': t.id,
+      'title': t.title,
+      'timeInMinutes': t.timeInMinutes,
+      'categoryId': t.categoryId,
+      'status': t.status,
+      'progress': t.progress,
+      'createdAt': t.createdAt.toIso8601String(),
+    }).toList();
+
+    // Goals
+    final goals = goalService.getGoals();
+    final goalsData = goals.map((g) => {
+      'id': g.id,
+      'iconCodePoint': g.iconCodePoint,
+      'title': g.title,
+      'current': g.current,
+      'total': g.total,
+      'colorValue': g.colorValue,
+      'weekStartDate': g.weekStartDate.toIso8601String(),
+    }).toList();
+
+    // Categories
+    final categories = categoryService.getCategories();
+    final categoriesData = categories.map((c) => {
+      'id': c.id,
+      'name': c.name,
+      'colorValue': c.colorValue,
+      'iconCodePoint': c.iconCodePoint,
+      'isDefault': c.isDefault,
+    }).toList();
+
+    // Settings
+    final settingsData = {
+      'userName': storage.getSetting<String>('userName') ?? '',
+      'morningAlarmEnabled': storage.getSetting<bool>('morningAlarmEnabled') ?? true,
+      'eveningAlarmEnabled': storage.getSetting<bool>('eveningAlarmEnabled') ?? true,
+      'morningReminderHour': storage.getSetting<int>('morningReminderHour') ?? 6,
+      'morningReminderMinute': storage.getSetting<int>('morningReminderMinute') ?? 0,
+      'eveningReminderHour': storage.getSetting<int>('eveningReminderHour') ?? 21,
+      'eveningReminderMinute': storage.getSetting<int>('eveningReminderMinute') ?? 0,
+      'isDarkMode': storage.getSetting<bool>('isDarkMode') ?? false,
+    };
+
+    return {
+      'exportDate': DateTime.now().toIso8601String(),
+      'appVersion': '1.0.0',
+      'dailyRecords': recordsData,
+      'tasks': tasksData,
+      'goals': goalsData,
+      'categories': categoriesData,
+      'settings': settingsData,
+    };
+  }
+
+  /// 내보내기 옵션 다이얼로그
+  void _showExportOptionsDialog(String jsonData) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusL),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.upload_outlined, color: AppColors.accentBlue),
+            const SizedBox(width: AppSizes.spaceS),
+            Text('데이터 내보내기', style: AppTextStyles.heading4),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '내보낼 데이터가 준비되었습니다.\n원하는 방식을 선택해주세요.',
+              style: AppTextStyles.bodyM.copyWith(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSizes.spaceL),
+
+            // 클립보드 복사
+            _buildExportOption(
+              icon: Icons.content_copy,
+              label: '클립보드에 복사',
+              color: AppColors.accentBlue,
+              onTap: () {
+                Navigator.pop(context);
+                _copyToClipboard(jsonData);
+              },
+            ),
+            const SizedBox(height: AppSizes.spaceM),
+
+            // 공유하기
+            _buildExportOption(
+              icon: Icons.share,
+              label: '공유하기',
+              color: AppColors.accentPurple,
+              onTap: () {
+                Navigator.pop(context);
+                _shareData(jsonData);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              AppStrings.btnCancel,
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 내보내기 옵션 버튼
+  Widget _buildExportOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.paddingL,
+          vertical: AppSizes.paddingM,
+        ),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppSizes.radiusM),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: AppSizes.iconM),
+            const SizedBox(width: AppSizes.spaceM),
+            Expanded(
+              child: Text(
+                label,
+                style: AppTextStyles.bodyM.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right, color: color, size: AppSizes.iconS),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 클립보드에 복사
+  Future<void> _copyToClipboard(String data) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: data));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('데이터가 클립보드에 복사되었습니다'),
+            backgroundColor: AppColors.accentGreen,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+      AppLogger.i('Data copied to clipboard', tag: _tag);
+    } catch (e) {
+      AppLogger.e('Failed to copy to clipboard', tag: _tag, error: e);
+    }
+  }
+
+  /// 데이터 공유
+  Future<void> _shareData(String data) async {
+    try {
+      // iOS/Android에서 공유 시트 표시
+      // 현재는 클립보드 복사로 대체하고 안내 메시지 표시
+      await Clipboard.setData(ClipboardData(text: data));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('데이터가 클립보드에 복사되었습니다.\n메모 앱 등에 붙여넣기하여 저장하세요.'),
+            backgroundColor: AppColors.accentBlue,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+
+      AppLogger.i('Data shared (via clipboard)', tag: _tag);
+    } catch (e) {
+      AppLogger.e('Failed to share data', tag: _tag, error: e);
+    }
   }
 
   /// 앱 정보 섹션
@@ -1068,21 +1325,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   /// 이름 편집 다이얼로그
   void _showNameEditDialog() {
-    final controller = TextEditingController(text: _userName);
+    final currentName = ref.read(userNameProvider);
+    final controller = TextEditingController(text: currentName);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusL),
         ),
-        title: Text(AppStrings.settingsEditName, style: AppTextStyles.heading4),
+        title: Text(
+          AppStrings.settingsEditName,
+          style: AppTextStyles.heading4.copyWith(
+            color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimary,
+          ),
+        ),
         content: TextField(
           controller: controller,
           autofocus: true,
+          style: TextStyle(
+            color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimary,
+          ),
           decoration: InputDecoration(
             hintText: AppStrings.settingsNameHint,
+            hintStyle: TextStyle(
+              color: isDarkMode ? AppColors.textTertiaryDark : AppColors.textTertiary,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSizes.radiusM),
             ),
@@ -1094,19 +1364,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               AppStrings.btnCancel,
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(
+                color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              ),
             ),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               final newName = controller.text.trim();
               if (newName.isNotEmpty) {
-                setState(() => _userName = newName);
-                _saveUserName(newName);
-                Navigator.pop(context);
+                // Provider를 통해 이름 저장 (자동으로 LocalStorage에도 저장)
+                await ref.read(userNameProvider.notifier).setUserName(newName);
+                Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(AppStrings.settingsNameSaved),
@@ -1361,11 +1633,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// 앱 설정 열기
   Future<void> _openAppSettings() async {
     try {
-      // permission_handler 패키지 사용 (추가 필요)
-      // await openAppSettings();
+      final opened = await openAppSettings();
 
-      // 임시: 안내 메시지
-      if (mounted) {
+      if (!opened && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('설정 > 알림에서 Franklin Flow 알림을 허용해주세요'),
@@ -1375,9 +1645,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         );
       }
 
-      AppLogger.i('Open app settings requested', tag: _tag);
+      AppLogger.i('Open app settings: $opened', tag: _tag);
     } catch (e) {
       AppLogger.e('Failed to open app settings', tag: _tag, error: e);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('설정을 열 수 없습니다'),
+            backgroundColor: AppColors.accentRed,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 }

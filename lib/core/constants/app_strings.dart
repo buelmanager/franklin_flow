@@ -196,6 +196,7 @@ class AppStrings {
   static const String goalFormTitleAdd = '새 목표 추가';
   static const String goalFormTitleEdit = '목표 수정';
   static const String goalFormFieldEmoji = '이모지';
+  static const String goalFormFieldIcon = '아이콘';
   static const String goalFormFieldName = '목표 이름';
   static const String goalFormFieldTotal = '주간 목표 횟수';
   static const String goalFormFieldColor = '색상';

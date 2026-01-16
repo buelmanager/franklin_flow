@@ -22,6 +22,8 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(
         AppSizes.paddingL,
@@ -29,7 +31,9 @@ class BottomNavBar extends StatelessWidget {
         AppSizes.paddingL,
         AppSizes.paddingL,
       ),
-      decoration: BoxDecoration(color: AppColors.background),
+      decoration: BoxDecoration(
+        color: isDarkMode ? AppColors.backgroundDark : AppColors.background,
+      ),
       child: NeumorphicContainer(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSizes.paddingS,
@@ -87,6 +91,9 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final inactiveColor = isDarkMode ? AppColors.textTertiaryDark : AppColors.textTertiary;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -107,7 +114,7 @@ class _NavItem extends StatelessWidget {
             Icon(
               icon,
               size: AppSizes.iconM,
-              color: isActive ? AppColors.accentBlue : AppColors.textTertiary,
+              color: isActive ? AppColors.accentBlue : inactiveColor,
             ),
             if (isActive) ...[
               const SizedBox(width: AppSizes.spaceS),

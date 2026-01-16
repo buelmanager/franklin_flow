@@ -1,5 +1,3 @@
-// lib/shared/models/goal_model.g.dart
-
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'goal_model.dart';
@@ -28,13 +26,14 @@ class GoalAdapter extends TypeAdapter<Goal> {
       createdAt: fields[6] as DateTime?,
       completedAt: fields[7] as DateTime?,
       weekStartDate: fields[8] as DateTime?,
+      iconCodePoint: fields[9] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Goal obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -52,7 +51,9 @@ class GoalAdapter extends TypeAdapter<Goal> {
       ..writeByte(7)
       ..write(obj.completedAt)
       ..writeByte(8)
-      ..write(obj.weekStartDate);
+      ..write(obj.weekStartDate)
+      ..writeByte(9)
+      ..write(obj.iconCodePoint);
   }
 
   @override

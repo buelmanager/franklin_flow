@@ -366,9 +366,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             return Container(
               width: 120,
               height: 120,
-              color: AppColors.accentBlue.withOpacity(0.15),
-              child: const Center(
-                child: Text('🌅', style: TextStyle(fontSize: 60)),
+              decoration: BoxDecoration(
+                color: AppColors.accentBlue.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(AppSizes.radiusL),
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.wb_sunny_rounded,
+                  size: 60,
+                  color: AppColors.accentOrange,
+                ),
               ),
             );
           },

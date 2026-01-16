@@ -1,5 +1,3 @@
-// lib/shared/models/task_model.g.dart
-
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'task_model.dart';

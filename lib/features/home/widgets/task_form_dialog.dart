@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/core.dart';
 import '../../../shared/models/task_model.dart';
 import '../../../services/task_service.dart';
+import '../../../services/category_service.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// 태스크 추가/수정 폼 다이얼로그
@@ -56,6 +57,7 @@ class TaskFormDialog extends ConsumerStatefulWidget {
 class _TaskFormDialogState extends ConsumerState<TaskFormDialog> {
   final _formKey = GlobalKey<FormState>();
   final _taskService = TaskService();
+  final _categoryService = CategoryService();
 
   // 폼 컨트롤러
   late TextEditingController _titleController;
@@ -74,7 +76,15 @@ class _TaskFormDialogState extends ConsumerState<TaskFormDialog> {
     // 수정 모드면 기존 데이터로 초기화
     _titleController = TextEditingController(text: widget.task?.title ?? '');
     _selectedTimeInMinutes = widget.task?.timeInMinutes;
-    _selectedCategoryId = widget.task?.categoryId;
+
+    // 카테고리 초기화: 수정 모드면 기존 값, 아니면 '개인' 카테고리를 기본값으로
+    if (widget.task != null) {
+      _selectedCategoryId = widget.task!.categoryId;
+    } else {
+      // '개인' 카테고리를 기본값으로 설정
+      final personalCategory = _categoryService.getCategoryByName('개인');
+      _selectedCategoryId = personalCategory?.id;
+    }
 
     AppLogger.d('TaskFormDialog initialized', tag: 'TaskFormDialog');
   }
