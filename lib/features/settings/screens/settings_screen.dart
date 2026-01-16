@@ -1201,8 +1201,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return 'Apple';
       case 'kakao':
         return 'Kakao';
-      case 'naver':
-        return 'Naver';
       case 'email':
         return 'Email';
       default:
@@ -1219,8 +1217,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return Icons.apple;
       case 'kakao':
         return Icons.chat_bubble;
-      case 'naver':
-        return Icons.language;
       case 'email':
         return Icons.email_outlined;
       default:
@@ -1237,8 +1233,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return Colors.black;
       case 'kakao':
         return const Color(0xFFFEE500);
-      case 'naver':
-        return const Color(0xFF03C75A);
       case 'email':
         return AppColors.accentBlue;
       default:

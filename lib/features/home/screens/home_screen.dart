@@ -349,14 +349,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _handleNotificationTap() {
-    AppLogger.ui('Notification tapped', screen: 'HomeScreen');
-  }
-
-  void _handleProfileTap() {
-    AppLogger.ui('Profile tapped', screen: 'HomeScreen');
-  }
-
   void _handleAddTaskTap() {
     AppLogger.ui('Add task tapped', screen: 'HomeScreen');
 
@@ -465,9 +457,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               // 공통 헤더 (모든 모드에서 표시)
               HomeHeader(
                 userName: userName,
-                notificationCount: 3,
-                onNotificationTap: _handleNotificationTap,
-                onProfileTap: _handleProfileTap,
               ),
               const SizedBox(height: AppSizes.spaceXL),
 
