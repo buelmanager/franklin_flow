@@ -46,7 +46,7 @@
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
 
-    <!-- URL Schemes (Google + Naver) -->
+    <!-- URL Schemes (Google + Kakao) -->
     <key>CFBundleURLTypes</key>
     <array>
         <!-- Google Sign In -->
@@ -58,41 +58,24 @@
                 <string>com.googleusercontent.apps.109821855872-i95cnhurp0dk5dumu12kanisf8d1bojd</string>
             </array>
         </dict>
-        <dict>
-                <key>CFBundleTypeRole</key>
-                <string>Editor</string>
-                <key>CFBundleURLSchemes</key>
-                <array>
-                    <string>kakaob017efe12d9d229ff065669aff2928ec</string>
-                </array>
-            </dict>
-        <!-- Naver Sign In -->
+        <!-- Kakao Sign In -->
         <dict>
             <key>CFBundleTypeRole</key>
             <string>Editor</string>
             <key>CFBundleURLSchemes</key>
             <array>
-                <string>franklinflow</string>
+                <string>kakaob017efe12d9d229ff065669aff2928ec</string>
             </array>
         </dict>
     </array>
 
-    <!-- Naver Login Queries -->
+    <!-- Kakao App Query Scheme -->
     <key>LSApplicationQueriesSchemes</key>
     <array>
-        <string>naversearchapp</string>
-        <string>naversearchthirdlogin</string>
+        <string>kakaokompassauth</string>
+        <string>kakaolink</string>
     </array>
 
-    <!-- Naver Login Config -->
-    <key>naverServiceAppUrlScheme</key>
-    <string>franklinflow</string>
-    <key>naverConsumerKey</key>
-    <string>vEvZLeAssTAacCsANErx</string>
-    <key>naverConsumerSecret</key>
-    <string>gZ7vsSjWND</string>
-    <key>naverServiceAppName</key>
-    <string>Franklin Flow</string>
     <key>UIBackgroundModes</key>
     <array>
         <string>remote-notification</string>

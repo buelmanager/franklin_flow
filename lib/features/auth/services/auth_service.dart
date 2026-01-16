@@ -9,7 +9,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:flutter_naver_login/flutter_naver_login.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
 
 import '../../../core/utils/app_logger.dart';
@@ -25,7 +24,6 @@ import 'auth_session_service.dart';
 /// - Google Sign In (웹/모바일)
 /// - Apple Sign In (iOS/macOS)
 /// - Kakao Sign In (모바일)
-/// - Naver Sign In (모바일)
 ///
 /// 사용법:
 ///   final authService = ref.read(authServiceProvider);
@@ -36,7 +34,6 @@ import 'auth_session_service.dart';
 ///   - google-sign-in-failed: Google 로그인 실패
 ///   - apple-sign-in-failed: Apple 로그인 실패
 ///   - kakao-sign-in-failed: Kakao 로그인 실패
-///   - naver-sign-in-failed: Naver 로그인 실패
 ///   - unknown-error: 알 수 없는 에러
 /// ═══════════════════════════════════════════════════════════════════════════
 
@@ -728,84 +725,6 @@ class AuthService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 네이버 로그인
-  // ─────────────────────────────────────────────────────────────────────────
-
-  Future<AuthResult> signInWithNaver() async {
-    try {
-      AppLogger.i('Starting Naver Sign In...', tag: _tag);
-
-      if (kIsWeb) {
-        AppLogger.w('Naver Sign In not supported on web', tag: _tag);
-        return AuthResult.failure(
-          'naver-sign-in-unavailable',
-          '네이버 로그인은 웹에서 지원되지 않습니다.',
-        );
-      }
-
-      final result = await FlutterNaverLogin.logIn();
-
-      AppLogger.d('Naver login result status: ${result.status}', tag: _tag);
-
-      if (result.status == 'error') {
-        AppLogger.e('Naver Sign In error: ${result.errorMessage}', tag: _tag);
-        return AuthResult.failure(
-          'naver-sign-in-failed',
-          result.errorMessage ?? '네이버 로그인에 실패했습니다.',
-        );
-      }
-
-      if (result.status == 'cancelledByUser') {
-        AppLogger.w('Naver Sign In cancelled by user', tag: _tag);
-        return AuthResult.failure('sign-in-cancelled', '로그인이 취소되었습니다.');
-      }
-
-      if (result.status != 'loggedIn') {
-        AppLogger.e(
-          'Naver Sign In failed with status: ${result.status}',
-          tag: _tag,
-        );
-        return AuthResult.failure('naver-sign-in-failed', '네이버 로그인에 실패했습니다.');
-      }
-
-      final account = result.account;
-
-      if (account == null) {
-        AppLogger.e('Naver account is null', tag: _tag);
-        return AuthResult.failure(
-          'naver-sign-in-failed',
-          '네이버 계정 정보를 가져올 수 없습니다.',
-        );
-      }
-
-      AppLogger.d('Naver account - id: ${account.id}', tag: _tag);
-      AppLogger.d('Naver account - email: ${account.email}', tag: _tag);
-      AppLogger.d('Naver account - name: ${account.name}', tag: _tag);
-
-      final user = User(
-        id: 'naver_${account.id}',
-        email: account.email ?? '',
-        name: account.name ?? account.nickname ?? '사용자',
-        profileImageUrl: account.profileImage,
-        createdAt: DateTime.now(),
-        lastLoginAt: DateTime.now(),
-        provider: 'naver',
-      );
-
-      AppLogger.i('Naver Sign In successful: ${user.name}', tag: _tag);
-      return AuthResult.success(user, isNewUser: true);
-    } catch (e, stackTrace) {
-      AppLogger.e(
-        'Naver Sign In failed: $e',
-        tag: _tag,
-        error: e,
-        stackTrace: stackTrace,
-      );
-      return AuthResult.failure('naver-sign-in-failed', '네이버 로그인에 실패했습니다.');
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
   // 이메일 로그인
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -952,14 +871,6 @@ class AuthService {
 
       // Kakao Sign Out
       await _signOutKakao();
-
-      // Naver Sign Out
-      try {
-        await FlutterNaverLogin.logOut();
-        AppLogger.d('Naver Sign Out completed', tag: _tag);
-      } catch (e) {
-        AppLogger.w('Naver Sign Out failed: $e', tag: _tag);
-      }
 
       // Firebase Sign Out
       await _firebaseAuth.signOut();
