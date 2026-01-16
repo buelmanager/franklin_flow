@@ -20,6 +20,7 @@ class Goal {
   final int id;
 
   @HiveField(1)
+  @Deprecated('Use iconCodePoint instead')
   final String emoji;
 
   @HiveField(2)
@@ -43,9 +44,12 @@ class Goal {
   @HiveField(8)
   final DateTime weekStartDate; // 주의 시작일 (월요일)
 
+  @HiveField(9)
+  final int iconCodePoint; // Material Icon code point
+
   Goal({
     required this.id,
-    required this.emoji,
+    this.emoji = '',
     required this.title,
     required this.current,
     required this.total,
@@ -53,11 +57,16 @@ class Goal {
     DateTime? createdAt,
     this.completedAt,
     DateTime? weekStartDate,
+    int? iconCodePoint,
   }) : createdAt = createdAt ?? DateTime.now(),
-       weekStartDate = weekStartDate ?? _getWeekStart(DateTime.now());
+       weekStartDate = weekStartDate ?? _getWeekStart(DateTime.now()),
+       iconCodePoint = iconCodePoint ?? Icons.flag_rounded.codePoint;
 
   /// Color 객체 getter
   Color get color => Color(colorValue);
+
+  /// Icon getter
+  IconData get icon => IconData(iconCodePoint, fontFamily: 'MaterialIcons');
 
   /// 진행률 (0.0 ~ 1.0)
   double get progress => total > 0 ? current / total : 0.0;
@@ -86,6 +95,7 @@ class Goal {
     DateTime? createdAt,
     DateTime? completedAt,
     DateTime? weekStartDate,
+    int? iconCodePoint,
   }) {
     return Goal(
       id: id ?? this.id,
@@ -97,6 +107,7 @@ class Goal {
       createdAt: createdAt ?? this.createdAt,
       completedAt: completedAt ?? this.completedAt,
       weekStartDate: weekStartDate ?? this.weekStartDate,
+      iconCodePoint: iconCodePoint ?? this.iconCodePoint,
     );
   }
 
@@ -118,39 +129,39 @@ class Goal {
     return [
       Goal(
         id: startId,
-        emoji: '🏃',
         title: 'Workout',
         current: 0,
         total: 3,
         colorValue: AppColors.accentPink.value,
         weekStartDate: weekStart,
+        iconCodePoint: Icons.directions_run_rounded.codePoint,
       ),
       Goal(
         id: startId + 1,
-        emoji: '📚',
         title: 'Reading',
         current: 0,
         total: 10,
         colorValue: AppColors.accentPurple.value,
         weekStartDate: weekStart,
+        iconCodePoint: Icons.menu_book_rounded.codePoint,
       ),
       Goal(
         id: startId + 2,
-        emoji: '💧',
         title: 'Water',
         current: 0,
         total: 8,
         colorValue: AppColors.accentBlue.value,
         weekStartDate: weekStart,
+        iconCodePoint: Icons.water_drop_rounded.codePoint,
       ),
       Goal(
         id: startId + 3,
-        emoji: '🧘',
         title: 'Meditation',
         current: 0,
         total: 7,
         colorValue: AppColors.accentGreen.value,
         weekStartDate: weekStart,
+        iconCodePoint: Icons.self_improvement_rounded.codePoint,
       ),
     ];
   }

@@ -1,5 +1,3 @@
-// lib/features/auth/models/auth_session_model.g.dart
-
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'auth_session_model.dart';

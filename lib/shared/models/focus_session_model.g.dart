@@ -1,5 +1,3 @@
-// lib/shared/models/focus_session_model.g.dart
-
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'focus_session_model.dart';

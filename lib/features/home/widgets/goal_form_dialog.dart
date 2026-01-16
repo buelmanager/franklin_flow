@@ -60,23 +60,23 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
   late TextEditingController _totalController;
 
   // 선택된 값들
-  String _selectedEmoji = '🎯';
+  int _selectedIconCodePoint = Icons.flag_rounded.codePoint;
   Color _selectedColor = AppColors.accentBlue;
 
-  // 이모지 목록
-  final List<String> _emojiList = [
-    '🎯',
-    '🏃',
-    '📚',
-    '💧',
-    '🧘',
-    '💪',
-    '🎨',
-    '🎵',
-    '✍️',
-    '🌱',
-    '🍎',
-    '😴',
+  // 아이콘 목록
+  final List<IconData> _iconList = [
+    Icons.flag_rounded,
+    Icons.directions_run_rounded,
+    Icons.menu_book_rounded,
+    Icons.water_drop_rounded,
+    Icons.self_improvement_rounded,
+    Icons.fitness_center_rounded,
+    Icons.palette_rounded,
+    Icons.music_note_rounded,
+    Icons.edit_rounded,
+    Icons.eco_rounded,
+    Icons.restaurant_rounded,
+    Icons.bedtime_rounded,
   ];
 
   // 색상 목록
@@ -102,7 +102,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
       _totalController = TextEditingController(
         text: widget.goal!.total.toString(),
       );
-      _selectedEmoji = widget.goal!.emoji;
+      _selectedIconCodePoint = widget.goal!.iconCodePoint;
       _selectedColor = widget.goal!.color;
     } else {
       _titleController = TextEditingController();
@@ -141,7 +141,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
       if (_isEditMode) {
         // 수정 모드
         savedGoal = widget.goal!.copyWith(
-          emoji: _selectedEmoji,
+          iconCodePoint: _selectedIconCodePoint,
           title: _titleController.text.trim(),
           total: total,
           colorValue: _selectedColor.value,
@@ -162,7 +162,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
         savedGoal = await ref
             .read(goalListProvider.notifier)
             .addGoal(
-              emoji: _selectedEmoji,
+              iconCodePoint: _selectedIconCodePoint,
               title: _titleController.text.trim(),
               total: total,
               colorValue: _selectedColor.value,
@@ -233,8 +233,8 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
                 ),
                 const SizedBox(height: AppSizes.spaceXL),
 
-                // 이모지 선택
-                _buildEmojiSelector(),
+                // 아이콘 선택
+                _buildIconSelector(),
                 const SizedBox(height: AppSizes.spaceXL),
 
                 // 목표 이름 입력
@@ -275,21 +275,21 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
     );
   }
 
-  Widget _buildEmojiSelector() {
+  Widget _buildIconSelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(AppStrings.goalFormFieldEmoji, style: AppTextStyles.labelL),
+        Text(AppStrings.goalFormFieldIcon, style: AppTextStyles.labelL),
         const SizedBox(height: AppSizes.spaceM),
         Wrap(
           spacing: AppSizes.spaceM,
           runSpacing: AppSizes.spaceM,
-          children: _emojiList.map((emoji) {
-            final isSelected = emoji == _selectedEmoji;
+          children: _iconList.map((icon) {
+            final isSelected = icon.codePoint == _selectedIconCodePoint;
             return GestureDetector(
               onTap: () {
                 setState(() {
-                  _selectedEmoji = emoji;
+                  _selectedIconCodePoint = icon.codePoint;
                 });
               },
               child: NeumorphicContainer(
@@ -300,7 +300,13 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
                     ? NeumorphicStyle.concave
                     : NeumorphicStyle.flat,
                 child: Center(
-                  child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                  child: Icon(
+                    icon,
+                    size: 24,
+                    color: isSelected
+                        ? _selectedColor
+                        : AppColors.textSecondary,
+                  ),
                 ),
               ),
             );

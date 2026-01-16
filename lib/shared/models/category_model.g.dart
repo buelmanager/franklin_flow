@@ -1,5 +1,3 @@
-// lib/shared/models/category_model.g.dart
-
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'category_model.dart';

@@ -1,5 +1,3 @@
-// lib/shared/models/daily_record_model.g.dart
-
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'daily_record_model.dart';

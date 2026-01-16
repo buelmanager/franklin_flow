@@ -484,7 +484,11 @@ class _MorningIntentionSectionState
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('☀️', style: const TextStyle(fontSize: 20)),
+              Icon(
+                Icons.wb_sunny_rounded,
+                size: 20,
+                color: isEnabled ? AppColors.accentOrange : AppColors.textDisabled,
+              ),
               const SizedBox(width: AppSizes.spaceM),
               Text(
                 AppStrings.morningStartDay,

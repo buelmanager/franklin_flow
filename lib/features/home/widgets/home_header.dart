@@ -33,6 +33,7 @@ class HomeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     AppLogger.d('HomeHeader build', tag: 'HomeHeader');
 
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();
     final displayName = userName ?? 'Wade';
 
@@ -50,13 +51,13 @@ class HomeHeader extends StatelessWidget {
                   Text(
                     AppStrings.getGreeting(),
                     style: AppTextStyles.bodyM.copyWith(
-                      color: AppColors.textSecondary,
+                      color: isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondary,
                     ),
                   ),
                   Text(
                     ', $displayName',
                     style: AppTextStyles.bodyM.copyWith(
-                      color: AppColors.textPrimary,
+                      color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -67,7 +68,7 @@ class HomeHeader extends StatelessWidget {
               Text(
                 _formatDate(now),
                 style: AppTextStyles.bodyS.copyWith(
-                  color: AppColors.textTertiary,
+                  color: isDarkMode ? AppColors.textTertiaryDark : AppColors.textTertiary,
                 ),
               ),
             ],

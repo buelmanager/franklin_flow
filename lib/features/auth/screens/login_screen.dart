@@ -337,9 +337,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  color: AppColors.accentBlue.withOpacity(0.15),
-                  child: const Center(
-                    child: Text('🌅', style: TextStyle(fontSize: 50)),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentBlue.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(AppSizes.radiusL),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.wb_sunny_rounded,
+                      size: 50,
+                      color: AppColors.accentOrange,
+                    ),
                   ),
                 );
               },

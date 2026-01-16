@@ -46,8 +46,8 @@ class GoalCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 아이콘
-                IconBox.emoji(
-                  emoji: goal.emoji,
+                IconBox.icon(
+                  icon: goal.icon,
                   color: goal.color,
                   size: AppSizes.avatarM,
                 ),

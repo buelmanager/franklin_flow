@@ -143,7 +143,11 @@ class TodayIntentionCard extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  Text('⭐', style: AppTextStyles.bodyL),
+                  Icon(
+                    Icons.star_rounded,
+                    size: AppSizes.iconS,
+                    color: AppColors.accentOrange,
+                  ),
                   const SizedBox(width: AppSizes.spaceS),
                   Text(
                     AppStrings.dayTodayIntention,

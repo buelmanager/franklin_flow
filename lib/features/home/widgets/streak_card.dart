@@ -79,7 +79,11 @@ class StreakCard extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Text(isActive ? '🔥' : '💤', style: const TextStyle(fontSize: 28)),
+          Icon(
+            isActive ? Icons.local_fire_department_rounded : Icons.bedtime_rounded,
+            size: 28,
+            color: color,
+          ),
           // 연속 일수 배지
           if (currentStreak > 0)
             Positioned(
@@ -162,7 +166,11 @@ class StreakCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(isNewRecord ? '🏆' : '🎯', style: const TextStyle(fontSize: 16)),
+          Icon(
+            isNewRecord ? Icons.emoji_events_rounded : Icons.flag_rounded,
+            size: 16,
+            color: isNewRecord ? AppColors.accentGold : AppColors.textTertiary,
+          ),
           const SizedBox(height: 2),
           Text(
             AppStrings.streakBest,

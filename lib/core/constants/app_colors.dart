@@ -112,6 +112,34 @@ class AppColors {
   // 골드 (스트릭 최고 기록용)
   static const Color accentGold = Color(0xFFFFD700);
   // ─────────────────────────────────────────────────────────────────────────
+  // 다크 모드 컬러
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 다크 모드 배경색
+  static const Color backgroundDark = Color(0xFF1A1A2E);
+
+  /// 다크 모드 표면색
+  static const Color surfaceDark = Color(0xFF16213E);
+
+  /// 다크 모드 카드 배경
+  static const Color cardBackgroundDark = Color(0xFF1F2940);
+
+  /// 다크 모드 어두운 그림자
+  static const Color shadowDarkMode = Color(0xFF0F0F1A);
+
+  /// 다크 모드 밝은 그림자
+  static const Color shadowLightMode = Color(0xFF2A2A45);
+
+  /// 다크 모드 주요 텍스트
+  static const Color textPrimaryDark = Color(0xFFE8E8E8);
+
+  /// 다크 모드 보조 텍스트
+  static const Color textSecondaryDark = Color(0xFFB0B0B0);
+
+  /// 다크 모드 비활성 텍스트
+  static const Color textTertiaryDark = Color(0xFF707070);
+
+  // ─────────────────────────────────────────────────────────────────────────
   // 유틸리티 메서드
   // ─────────────────────────────────────────────────────────────────────────
 
