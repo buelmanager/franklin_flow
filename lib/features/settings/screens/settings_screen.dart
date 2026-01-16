@@ -274,6 +274,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             // 앱 정보 섹션
             _buildAppInfoSection(),
+            const SizedBox(height: AppSizes.spaceXL),
+
+            // 계정 섹션
+            _buildAccountSection(),
 
             const SizedBox(height: 100),
           ],
@@ -805,6 +809,184 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ],
     );
+  }
+
+  /// 계정 섹션
+  Widget _buildAccountSection() {
+    final currentUser = ref.watch(currentUserProvider);
+    final providerName = _getProviderDisplayName(currentUser?.provider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle(AppStrings.settingsAccount, Icons.account_circle_outlined),
+        const SizedBox(height: AppSizes.spaceM),
+
+        NeumorphicContainer(
+          padding: const EdgeInsets.all(AppSizes.paddingL),
+          child: Column(
+            children: [
+              // 현재 로그인 정보
+              if (currentUser != null) ...[
+                _buildSettingRow(
+                  icon: _getProviderIcon(currentUser.provider),
+                  title: currentUser.email.isNotEmpty
+                      ? currentUser.email
+                      : currentUser.name,
+                  subtitle: '$providerName ${AppStrings.settingsLoggedInWith}',
+                  iconColor: _getProviderColor(currentUser.provider),
+                ),
+                const Divider(height: AppSizes.spaceXL),
+              ],
+
+              // 로그아웃 버튼
+              _buildSettingRow(
+                icon: Icons.logout,
+                title: AppStrings.settingsLogout,
+                subtitle: AppStrings.settingsLogoutDescription,
+                iconColor: AppColors.accentRed,
+                onTap: _showLogoutConfirmDialog,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 로그아웃 확인 다이얼로그
+  void _showLogoutConfirmDialog() {
+    NeumorphicDialog.showConfirm(
+      context: context,
+      title: AppStrings.settingsLogoutConfirmTitle,
+      message: AppStrings.settingsLogoutConfirmMessage,
+      confirmText: AppStrings.settingsLogout,
+      cancelText: AppStrings.btnCancel,
+    ).then((confirmed) async {
+      if (confirmed == true) {
+        await _performLogout();
+      }
+    });
+  }
+
+  /// 로그아웃 실행
+  Future<void> _performLogout() async {
+    try {
+      AppLogger.i('Starting logout...', tag: _tag);
+
+      // 로딩 표시
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Center(
+            child: Container(
+              padding: const EdgeInsets.all(AppSizes.paddingXL),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppSizes.radiusL),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: AppSizes.spaceM),
+                  Text(
+                    AppStrings.settingsLoggingOut,
+                    style: AppTextStyles.bodyM,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      // AuthService 로그아웃 호출
+      final authService = AuthService();
+      await authService.signOut();
+
+      // 상태 초기화
+      ref.read(currentUserProvider.notifier).state = null;
+      ref.read(authStateProvider.notifier).state = AuthState.unauthenticated;
+
+      AppLogger.i('Logout successful', tag: _tag);
+
+      // 다이얼로그 닫기 및 로그인 화면으로 이동
+      if (mounted) {
+        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+
+        // 로그인 화면으로 이동 (모든 스택 제거)
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
+    } catch (e, stackTrace) {
+      AppLogger.e('Logout failed', tag: _tag, error: e, stackTrace: stackTrace);
+
+      if (mounted) {
+        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppStrings.settingsLogoutFailed),
+            backgroundColor: AppColors.accentRed,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Provider 표시 이름 가져오기
+  String _getProviderDisplayName(String? provider) {
+    switch (provider) {
+      case 'google':
+        return 'Google';
+      case 'apple':
+        return 'Apple';
+      case 'kakao':
+        return 'Kakao';
+      case 'naver':
+        return 'Naver';
+      case 'email':
+        return 'Email';
+      default:
+        return '';
+    }
+  }
+
+  /// Provider 아이콘 가져오기
+  IconData _getProviderIcon(String? provider) {
+    switch (provider) {
+      case 'google':
+        return Icons.g_mobiledata;
+      case 'apple':
+        return Icons.apple;
+      case 'kakao':
+        return Icons.chat_bubble;
+      case 'naver':
+        return Icons.language;
+      case 'email':
+        return Icons.email_outlined;
+      default:
+        return Icons.account_circle_outlined;
+    }
+  }
+
+  /// Provider 색상 가져오기
+  Color _getProviderColor(String? provider) {
+    switch (provider) {
+      case 'google':
+        return const Color(0xFF4285F4);
+      case 'apple':
+        return Colors.black;
+      case 'kakao':
+        return const Color(0xFFFEE500);
+      case 'naver':
+        return const Color(0xFF03C75A);
+      case 'email':
+        return AppColors.accentBlue;
+      default:
+        return AppColors.textSecondary;
+    }
   }
 
   /// 섹션 타이틀

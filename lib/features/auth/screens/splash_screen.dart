@@ -16,6 +16,7 @@ import '../../../services/local_storage_service.dart';
 import '../../../services/notification_service.dart';
 import '../config/auth_config.dart';
 import '../services/auth_service.dart';
+import '../services/auth_session_service.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// Splash Screen - 스플래시 화면
@@ -110,6 +111,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       await LocalStorageService().openBoxes();
       AppLogger.i('Hive initialized', tag: _tag);
 
+      // 2-1. 세션 서비스 초기화
+      final sessionService = AuthSessionService();
+      await sessionService.init();
+      AppLogger.i('AuthSessionService initialized', tag: _tag);
+
       // 3. 알림 서비스 초기화
       _updateStatus(AppStrings.splashSettingUpNotifications);
       await NotificationService.init();
@@ -137,7 +143,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       // 5. 인증 상태 확인
       _updateStatus(AppStrings.splashCheckingAuth);
       final authService = AuthService();
-      final currentUser = authService.getCurrentUser();
+
+      // Firebase 사용자 확인
+      var currentUser = authService.getCurrentUser();
+
+      // Firebase 사용자가 없으면 저장된 세션에서 복원 시도 (카카오 등)
+      if (currentUser == null) {
+        AppLogger.d('No Firebase user, trying to restore session...', tag: _tag);
+        currentUser = await sessionService.restoreUser();
+        if (currentUser != null) {
+          AppLogger.i(
+            'Session restored: ${currentUser.name} (${currentUser.provider})',
+            tag: _tag,
+          );
+        }
+      }
 
       // 6. 온보딩 상태 확인
       final storage = LocalStorageService();

@@ -15,6 +15,7 @@ import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
 import '../../../core/utils/app_logger.dart';
 import '../config/auth_config.dart';
 import '../models/user_model.dart';
+import 'auth_session_service.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// AuthService - Firebase 기반 인증 서비스
@@ -97,6 +98,9 @@ class AuthService {
   // Firebase Auth 인스턴스
   final firebase_auth.FirebaseAuth _firebaseAuth =
       firebase_auth.FirebaseAuth.instance;
+
+  // 세션 서비스 인스턴스
+  final AuthSessionService _sessionService = AuthSessionService();
 
   // Google Sign In 인스턴스 (플랫폼별 설정)
   late final GoogleSignIn _googleSignIn = _createGoogleSignIn();
@@ -637,7 +641,21 @@ class AuthService {
 
       AppLogger.d('[Kakao Step 7] User model created', tag: _tag);
 
-      // Step 8: 성공 로깅
+      // Step 8: 세션 저장 (로그인 상태 유지를 위해)
+      AppLogger.d('[Kakao Step 8] Saving session...', tag: _tag);
+      final session = _sessionService.createKakaoSession(
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        profileImageUrl: user.profileImageUrl,
+        accessToken: token.accessToken,
+        refreshToken: token.refreshToken,
+        tokenExpiresAt: token.expiresAt,
+      );
+      await _sessionService.saveSession(session);
+      AppLogger.d('[Kakao Step 8] Session saved', tag: _tag);
+
+      // Step 9: 성공 로깅
       AppLogger.i('═══════════════════════════════════════════════', tag: _tag);
       AppLogger.i('Kakao Sign In SUCCESSFUL!', tag: _tag);
       AppLogger.i('  User: ${user.name}', tag: _tag);
@@ -945,6 +963,10 @@ class AuthService {
 
       // Firebase Sign Out
       await _firebaseAuth.signOut();
+
+      // 세션 삭제
+      await _sessionService.clearSession();
+      AppLogger.d('Session cleared', tag: _tag);
 
       AppLogger.i('Sign out successful', tag: _tag);
     } catch (e, stackTrace) {

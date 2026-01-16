@@ -53,21 +53,40 @@ class LocalStorageService {
   // 초기화
   // ─────────────────────────────────────────────────────────────────────────
 
+  static bool _hiveInitialized = false;
+
   /// Hive 초기화 (앱 시작 시 한 번만 실행)
   static Future<void> init() async {
+    if (_hiveInitialized) {
+      AppLogger.w('Hive already initialized, skipping...', tag: 'LocalStorageService');
+      return;
+    }
+
     try {
       AppLogger.i('Initializing Hive...', tag: 'LocalStorageService');
 
       // Hive 초기화
       await Hive.initFlutter();
 
-      // Adapter 등록
-      Hive.registerAdapter(TaskAdapter());
-      Hive.registerAdapter(CategoryAdapter());
-      Hive.registerAdapter(GoalAdapter());
-      // 추가
-      Hive.registerAdapter(DailyRecordAdapter()); // ← 이 줄 추가
+      // Adapter 등록 (이미 등록되어 있으면 건너뜀)
+      // typeId: 0 - Task, 1 - Category, 2 - FocusSession, 3 - Goal, 6 - DailyRecord
+      if (!Hive.isAdapterRegistered(0)) {
+        Hive.registerAdapter(TaskAdapter());
+      }
+      if (!Hive.isAdapterRegistered(1)) {
+        Hive.registerAdapter(CategoryAdapter());
+      }
+      if (!Hive.isAdapterRegistered(2)) {
+        Hive.registerAdapter(FocusSessionAdapter());
+      }
+      if (!Hive.isAdapterRegistered(3)) {
+        Hive.registerAdapter(GoalAdapter());
+      }
+      if (!Hive.isAdapterRegistered(6)) {
+        Hive.registerAdapter(DailyRecordAdapter());
+      }
 
+      _hiveInitialized = true;
       AppLogger.i('Hive initialized successfully', tag: 'LocalStorageService');
     } catch (e, stackTrace) {
       AppLogger.e(
