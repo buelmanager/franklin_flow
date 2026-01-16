@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "109821855872",
+    "project_id": "franklin-flow",
+    "storage_bucket": "franklin-flow.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:109821855872:android:ceda82f6dc03e29e493e65",
+        "android_client_info": {
+          "package_name": "com.buelmanager.franklin_flow"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "109821855872-3os8fudr59902iuv57o5hs019g266997.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARw8uj6js0tLg4s9ssMVCE-2KATqKUkLo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "109821855872-3os8fudr59902iuv57o5hs019g266997.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "109821855872-i95cnhurp0dk5dumu12kanisf8d1bojd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.buelmanager.franklinFlow"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
