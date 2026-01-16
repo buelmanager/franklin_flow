@@ -459,6 +459,16 @@ class AppStrings {
   static const String settingsMadeWith = '만든 기술';
   static const String settingsComingSoon = '준비 중인 기능입니다';
 
+  // 계정 섹션
+  static const String settingsAccount = '계정';
+  static const String settingsLoggedInWith = '로그인';
+  static const String settingsLogout = '로그아웃';
+  static const String settingsLogoutDescription = '현재 계정에서 로그아웃합니다';
+  static const String settingsLogoutConfirmTitle = '로그아웃';
+  static const String settingsLogoutConfirmMessage = '정말 로그아웃 하시겠습니까?';
+  static const String settingsLoggingOut = '로그아웃 중...';
+  static const String settingsLogoutFailed = '로그아웃에 실패했습니다';
+
   // ─────────────────────────────────────────────────────────────────────────
   // Analytics 화면
   // ─────────────────────────────────────────────────────────────────────────
