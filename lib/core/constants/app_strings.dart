@@ -325,6 +325,7 @@ class AppStrings {
   static const String morningTip = '하나 이상 선택해주세요. 너무 많으면 피로해져요.';
   static const String morningCompleted = '오늘의 다짐이 저장되었습니다';
   static const String morningEditResolution = '다짐 수정';
+  static const String maxIntentionsReached = '최대 3개까지만 선택할 수 있습니다';
 
   // ─────────────────────────────────────────────────────────────────────────
   // Today's Good - 저녁 성찰 (Evening Reflection)

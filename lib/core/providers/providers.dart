@@ -1,15 +1,18 @@
 // lib/core/providers/providers.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../services/daily_record_service.dart';
 import '../../services/goal_service.dart';
 import '../../services/task_service.dart';
 import '../../services/category_service.dart';
 import '../../services/focus_service.dart';
 import '../../services/local_storage_service.dart';
+import '../../shared/models/daily_record_model.dart';
 import '../../shared/models/goal_model.dart';
 import '../../shared/models/task_model.dart';
 import '../../shared/models/category_model.dart';
 import '../../shared/models/focus_session_model.dart';
+import '../utils/app_logger.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// Franklin Flow Providers
@@ -363,4 +366,219 @@ final weekCompletionRateProvider = Provider<int>((ref) {
 
   final completed = weekGoals.where((g) => g.isCompleted).length;
   return ((completed / weekGoals.length) * 100).round();
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// DailyRecord Providers (Today's Good)
+// ─────────────────────────────────────────────────────────────────────────
+
+/// DailyRecordService Provider
+final dailyRecordServiceProvider = Provider<DailyRecordService>((ref) {
+  return DailyRecordService();
+});
+
+/// 오늘의 DailyRecord Provider (반응형)
+final todayRecordProvider =
+    StateNotifierProvider<TodayRecordNotifier, DailyRecord?>((ref) {
+  final service = ref.watch(dailyRecordServiceProvider);
+  return TodayRecordNotifier(service, ref);
+});
+
+/// TodayRecord Notifier
+class TodayRecordNotifier extends StateNotifier<DailyRecord?> {
+  static const String _tag = 'TodayRecordNotifier';
+
+  final DailyRecordService _service;
+
+  TodayRecordNotifier(this._service, Ref ref) : super(null) {
+    // 초기 로드
+    _loadTodayRecord();
+  }
+
+  /// 오늘의 기록 로드
+  void _loadTodayRecord() {
+    try {
+      state = _service.getTodayRecord();
+      AppLogger.d(
+        'Today record loaded: ${state?.id}, intentions: ${state?.totalIntentionCount}',
+        tag: _tag,
+      );
+    } catch (e) {
+      AppLogger.e('Failed to load today record', tag: _tag, error: e);
+      state = DailyRecord.forToday();
+    }
+  }
+
+  /// 새로고침
+  void refresh() {
+    _loadTodayRecord();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 아침 의도 관련
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Task 의도 토글
+  Future<bool> toggleTaskIntention(int taskId) async {
+    try {
+      final record = state ?? DailyRecord.forToday();
+
+      // 최대 3개 제한 체크
+      if (!record.selectedTaskIds.contains(taskId) &&
+          record.totalIntentionCount >= 3) {
+        AppLogger.w('Max intentions reached (3)', tag: _tag);
+        return false;
+      }
+
+      record.toggleSelectedTaskId(taskId);
+      await _service.saveRecord(record);
+      state = record.copyWith();
+
+      AppLogger.d(
+        'Task intention toggled: $taskId, total: ${record.totalIntentionCount}',
+        tag: _tag,
+      );
+      return true;
+    } catch (e) {
+      AppLogger.e('Failed to toggle task intention', tag: _tag, error: e);
+      return false;
+    }
+  }
+
+  /// 자유 의도 추가
+  Future<bool> addFreeIntention(String intention) async {
+    try {
+      if (intention.trim().isEmpty) return false;
+
+      final record = state ?? DailyRecord.forToday();
+
+      // 최대 3개 제한 체크
+      if (record.totalIntentionCount >= 3) {
+        AppLogger.w('Max intentions reached (3)', tag: _tag);
+        return false;
+      }
+
+      record.addFreeIntention(intention);
+      await _service.saveRecord(record);
+      state = record.copyWith();
+
+      AppLogger.d('Free intention added: $intention', tag: _tag);
+      return true;
+    } catch (e) {
+      AppLogger.e('Failed to add free intention', tag: _tag, error: e);
+      return false;
+    }
+  }
+
+  /// 자유 의도 제거
+  Future<bool> removeFreeIntention(int index) async {
+    try {
+      final record = state;
+      if (record == null) return false;
+
+      record.removeFreeIntention(index);
+      await _service.saveRecord(record);
+      state = record.copyWith();
+
+      AppLogger.d('Free intention removed at index: $index', tag: _tag);
+      return true;
+    } catch (e) {
+      AppLogger.e('Failed to remove free intention', tag: _tag, error: e);
+      return false;
+    }
+  }
+
+  /// 자유 의도 완료 토글
+  Future<bool> toggleFreeIntentionCompleted(int index) async {
+    try {
+      final record = state;
+      if (record == null) return false;
+
+      record.toggleFreeIntentionCompleted(index);
+      await _service.saveRecord(record);
+      state = record.copyWith();
+
+      AppLogger.d('Free intention toggled at index: $index', tag: _tag);
+      return true;
+    } catch (e) {
+      AppLogger.e('Failed to toggle free intention', tag: _tag, error: e);
+      return false;
+    }
+  }
+
+  /// 아침 의도 완료 처리
+  Future<bool> completeMorningIntention() async {
+    try {
+      final record = state;
+      if (record == null) return false;
+
+      record.completeMorningIntention();
+      await _service.saveRecord(record);
+      state = record.copyWith();
+
+      AppLogger.i('Morning intention completed', tag: _tag);
+      return true;
+    } catch (e) {
+      AppLogger.e('Failed to complete morning intention', tag: _tag, error: e);
+      return false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 저녁 성찰 관련
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 저녁 성찰 저장
+  Future<bool> saveEveningReflection(String reflection, int rating) async {
+    try {
+      final record = state;
+      if (record == null) return false;
+
+      record.setEveningReflection(reflection, rating);
+      await _service.saveRecord(record);
+      state = record.copyWith();
+
+      AppLogger.d('Evening reflection saved with rating: $rating', tag: _tag);
+      return true;
+    } catch (e) {
+      AppLogger.e('Failed to save evening reflection', tag: _tag, error: e);
+      return false;
+    }
+  }
+
+  /// 저녁 성찰 완료 처리
+  Future<bool> completeEveningReflection() async {
+    try {
+      final record = state;
+      if (record == null) return false;
+
+      record.completeEveningReflection();
+      await _service.saveRecord(record);
+      state = record.copyWith();
+
+      AppLogger.i('Evening reflection completed', tag: _tag);
+      return true;
+    } catch (e) {
+      AppLogger.e('Failed to complete evening reflection', tag: _tag, error: e);
+      return false;
+    }
+  }
+}
+
+/// 연속 기록 일수 Provider
+final streakDaysProvider = Provider<int>((ref) {
+  final service = ref.watch(dailyRecordServiceProvider);
+  return service.getStreakDays();
+});
+
+/// 평균 만족도 Provider (최근 7일)
+final averageSatisfactionProvider = Provider<double>((ref) {
+  final service = ref.watch(dailyRecordServiceProvider);
+  return service.getAverageSatisfaction(days: 7);
+});
+
+/// 완료된 일수 Provider (최근 30일)
+final completedDaysProvider = Provider<int>((ref) {
+  final service = ref.watch(dailyRecordServiceProvider);
+  return service.getCompletedDays(days: 30);
 });

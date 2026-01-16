@@ -8,9 +8,6 @@ import '../../../shared/models/models.dart';
 import '../../../services/local_storage_service.dart';
 import '../../auth/services/auth_service.dart';
 import '../widgets/widgets.dart';
-import '../widgets/morning_intention_section.dart';
-import '../widgets/evening_reflection_section.dart';
-import '../widgets/today_summary_card.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// 홈 화면 (메인 화면 기본)
@@ -34,6 +31,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  static const String _tag = 'HomeScreen';
+
   int _selectedTaskIndex = -1;
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -50,35 +49,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   TimeOfDayMode get _currentMode {
     if (_overrideMode != null) return _overrideMode!;
 
+    // Provider에서 DailyRecord 가져오기
+    final todayRecord = ref.read(todayRecordProvider);
+    final isMorningCompleted = todayRecord?.isMorningCompleted ?? false;
+    final isEveningCompleted = todayRecord?.isEveningCompleted ?? false;
+
     // 자동 모드: 시간대 + 완료 여부에 따라 결정
     return TimeOfDayModeExtension.determineMode(
-      isMorningCompleted: _isMorningCompleted,
-      isEveningCompleted: _isEveningCompleted,
+      isMorningCompleted: isMorningCompleted,
+      isEveningCompleted: isEveningCompleted,
     );
   }
-
-  /// 선택된 Task ID 목록 (오늘의 의도)
-  final List<int> _selectedIntentionTaskIds = [];
-
-  /// 자유 의도 목록
-  final List<String> _freeIntentions = [];
-
-  /// 자유 의도 완료 상태
-  final List<bool> _freeIntentionCompleted = [];
-
-  /// 아침 의도 완료 여부
-  bool _isMorningCompleted = false;
-
-  /// 저녁 성찰 완료 여부
-  bool _isEveningCompleted = false;
-
-  /// 연속 달성 일수 (임시)
-  final int _streak = 7;
 
   @override
   void initState() {
     super.initState();
-    AppLogger.d('HomeScreen initState', tag: 'HomeScreen');
+    AppLogger.d('HomeScreen initState', tag: _tag);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -123,100 +109,107 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // 아침 의도 핸들러
   // ─────────────────────────────────────────────────────────────────────────
 
-  void _handleTaskIntentionToggle(int taskId) {
-    setState(() {
-      if (_selectedIntentionTaskIds.contains(taskId)) {
-        _selectedIntentionTaskIds.remove(taskId);
-      } else {
-        // 최대 3개까지만 선택 가능
-        if (_selectedIntentionTaskIds.length + _freeIntentions.length < 3) {
-          _selectedIntentionTaskIds.add(taskId);
-        }
-      }
-    });
+  Future<void> _handleTaskIntentionToggle(int taskId) async {
+    final success = await ref
+        .read(todayRecordProvider.notifier)
+        .toggleTaskIntention(taskId);
 
-    AppLogger.ui('Task intention toggled: $taskId', screen: 'HomeScreen');
-  }
-
-  void _handleAddFreeIntention(String intention) {
-    if (_selectedIntentionTaskIds.length + _freeIntentions.length >= 3) {
-      return;
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppStrings.maxIntentionsReached),
+          backgroundColor: AppColors.accentOrange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
 
-    setState(() {
-      _freeIntentions.add(intention);
-      _freeIntentionCompleted.add(false);
-    });
-
-    AppLogger.ui('Free intention added: $intention', screen: 'HomeScreen');
+    AppLogger.ui('Task intention toggled: $taskId', screen: _tag);
   }
 
-  void _handleRemoveFreeIntention(int index) {
-    setState(() {
-      _freeIntentions.removeAt(index);
-      _freeIntentionCompleted.removeAt(index);
-    });
+  Future<void> _handleAddFreeIntention(String intention) async {
+    final success = await ref
+        .read(todayRecordProvider.notifier)
+        .addFreeIntention(intention);
 
-    AppLogger.ui(
-      'Free intention removed at index: $index',
-      screen: 'HomeScreen',
-    );
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppStrings.maxIntentionsReached),
+          backgroundColor: AppColors.accentOrange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+
+    AppLogger.ui('Free intention added: $intention', screen: _tag);
   }
 
-  void _handleStartDay() {
+  Future<void> _handleRemoveFreeIntention(int index) async {
+    await ref.read(todayRecordProvider.notifier).removeFreeIntention(index);
+
+    AppLogger.ui('Free intention removed at index: $index', screen: _tag);
+  }
+
+  Future<void> _handleStartDay() async {
+    await ref.read(todayRecordProvider.notifier).completeMorningIntention();
+
     setState(() {
-      _isMorningCompleted = true;
       // 완료 후 자동으로 메인 화면으로 (자동 모드일 경우)
       if (_isAutoMode) {
-        _overrideMode = null; // 자동 모드 유지 → 메인으로
+        _overrideMode = null; // 자동 모드 유지 -> 메인으로
       } else {
-        _overrideMode = TimeOfDayMode.main; // 수동 → 메인으로
+        _overrideMode = TimeOfDayMode.main; // 수동 -> 메인으로
       }
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppStrings.morningCompleted),
-        backgroundColor: AppColors.accentGreen,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppStrings.morningCompleted),
+          backgroundColor: AppColors.accentGreen,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
 
-    AppLogger.ui('Morning intention completed', screen: 'HomeScreen');
+    AppLogger.ui('Morning intention completed', screen: _tag);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
   // 저녁 성찰 핸들러
   // ─────────────────────────────────────────────────────────────────────────
 
-  void _handleFreeIntentionToggle(int index) {
-    setState(() {
-      _freeIntentionCompleted[index] = !_freeIntentionCompleted[index];
-    });
+  Future<void> _handleFreeIntentionToggle(int index) async {
+    await ref
+        .read(todayRecordProvider.notifier)
+        .toggleFreeIntentionCompleted(index);
 
-    AppLogger.ui(
-      'Free intention toggled at index: $index',
-      screen: 'HomeScreen',
-    );
+    AppLogger.ui('Free intention toggled at index: $index', screen: _tag);
   }
 
   void _handleTaskComplete(int taskId) {
     // Task 상태를 완료로 변경
     ref.read(taskListProvider.notifier).changeTaskStatus(taskId, 'completed');
 
-    AppLogger.ui('Task completed from evening: $taskId', screen: 'HomeScreen');
+    AppLogger.ui('Task completed from evening: $taskId', screen: _tag);
   }
 
-  void _handleSaveReflection(String reflection, int rating) {
+  Future<void> _handleSaveReflection(String reflection, int rating) async {
+    await ref
+        .read(todayRecordProvider.notifier)
+        .saveEveningReflection(reflection, rating);
+
     AppLogger.i(
       'Reflection saved - rating: $rating, text: $reflection',
-      tag: 'HomeScreen',
+      tag: _tag,
     );
   }
 
-  void _handleFinishDay() {
+  Future<void> _handleFinishDay() async {
+    await ref.read(todayRecordProvider.notifier).completeEveningReflection();
+
     setState(() {
-      _isEveningCompleted = true;
       // 완료 후 자동으로 메인 화면으로
       if (_isAutoMode) {
         _overrideMode = null;
@@ -225,15 +218,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppStrings.eveningCompleted),
-        backgroundColor: AppColors.accentGreen,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppStrings.eveningCompleted),
+          backgroundColor: AppColors.accentGreen,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
 
-    AppLogger.ui('Evening reflection completed', screen: 'HomeScreen');
+    AppLogger.ui('Evening reflection completed', screen: _tag);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -244,21 +239,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     setState(() {
       _overrideMode = TimeOfDayMode.morning;
     });
-    AppLogger.ui('Navigate to morning mode', screen: 'HomeScreen');
+    AppLogger.ui('Navigate to morning mode', screen: _tag);
   }
 
   void _handleGoToEvening() {
     setState(() {
       _overrideMode = TimeOfDayMode.evening;
     });
-    AppLogger.ui('Navigate to evening mode', screen: 'HomeScreen');
+    AppLogger.ui('Navigate to evening mode', screen: _tag);
   }
 
   void _handleGoToMain() {
     setState(() {
       _overrideMode = TimeOfDayMode.main;
     });
-    AppLogger.ui('Navigate to main mode', screen: 'HomeScreen');
+    AppLogger.ui('Navigate to main mode', screen: _tag);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -280,25 +275,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
 
-    // 완료 ↔ 미완료 토글
+    // 완료 <-> 미완료 토글
     final newStatus = task.isCompleted ? 'pending' : 'completed';
     ref.read(taskListProvider.notifier).changeTaskStatus(taskId, newStatus);
 
-    AppLogger.ui(
-      'Intention task toggled: $taskId -> $newStatus',
-      screen: 'HomeScreen',
-    );
+    AppLogger.ui('Intention task toggled: $taskId -> $newStatus', screen: _tag);
   }
 
   /// 메인 화면에서 자유 의도 토글
-  void _handleFreeIntentionToggleFromMain(int index) {
-    setState(() {
-      _freeIntentionCompleted[index] = !_freeIntentionCompleted[index];
-    });
+  Future<void> _handleFreeIntentionToggleFromMain(int index) async {
+    await ref
+        .read(todayRecordProvider.notifier)
+        .toggleFreeIntentionCompleted(index);
 
     AppLogger.ui(
       'Free intention toggled from main at index: $index',
-      screen: 'HomeScreen',
+      screen: _tag,
     );
   }
 
@@ -449,9 +441,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final currentUser = ref.watch(currentUserProvider);
     final userName = _getUserName();
 
+    // DailyRecord watch (반응형 업데이트)
+    final todayRecord = ref.watch(todayRecordProvider);
+
     AppLogger.d(
-      'HomeScreen build - mode: ${_currentMode.displayName}, auto: $_isAutoMode, user: $userName',
-      tag: 'HomeScreen',
+      'HomeScreen build - mode: ${_currentMode.displayName}, auto: $_isAutoMode, '
+      'user: $userName, record: ${todayRecord?.id}',
+      tag: _tag,
     );
 
     return SingleChildScrollView(
@@ -473,7 +469,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(height: AppSizes.spaceXL),
 
             // 시간대별 콘텐츠
-            _buildModeContent(userName),
+            _buildModeContent(userName, todayRecord),
 
             const SizedBox(height: 100),
           ],
@@ -483,19 +479,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   /// 시간대별 콘텐츠 빌드
-  Widget _buildModeContent(String userName) {
+  Widget _buildModeContent(String userName, DailyRecord? todayRecord) {
     switch (_currentMode) {
       case TimeOfDayMode.morning:
-        return _buildMorningMode(userName);
+        return _buildMorningMode(userName, todayRecord);
       case TimeOfDayMode.main:
-        return _buildMainMode();
+        return _buildMainMode(todayRecord);
       case TimeOfDayMode.evening:
-        return _buildEveningMode();
+        return _buildEveningMode(todayRecord);
     }
   }
 
   /// 아침 모드 콘텐츠 (이벤트)
-  Widget _buildMorningMode(String userName) {
+  Widget _buildMorningMode(String userName, DailyRecord? todayRecord) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -506,8 +502,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // 아침 의도 섹션
         MorningIntentionSection(
           userName: userName,
-          selectedTaskIds: _selectedIntentionTaskIds,
-          freeIntentions: _freeIntentions,
+          selectedTaskIds: todayRecord?.selectedTaskIds ?? [],
+          freeIntentions: todayRecord?.freeIntentions ?? [],
           onTaskToggle: _handleTaskIntentionToggle,
           onAddFreeIntention: _handleAddFreeIntention,
           onRemoveFreeIntention: _handleRemoveFreeIntention,
@@ -518,20 +514,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   /// 메인 모드 콘텐츠 (기본 홈 화면)
-  Widget _buildMainMode() {
+  Widget _buildMainMode(DailyRecord? todayRecord) {
     final tasks = ref.watch(taskListProvider);
+    final streak = ref.watch(streakDaysProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 오늘의 요약 카드
         TodaySummaryCard(
-          selectedTaskIds: _selectedIntentionTaskIds,
-          freeIntentions: _freeIntentions,
-          freeIntentionCompleted: _freeIntentionCompleted,
-          isMorningCompleted: _isMorningCompleted,
-          isEveningCompleted: _isEveningCompleted,
-          streak: _streak,
+          selectedTaskIds: todayRecord?.selectedTaskIds ?? [],
+          freeIntentions: todayRecord?.freeIntentions ?? [],
+          freeIntentionCompleted: todayRecord?.freeIntentionCompleted ?? [],
+          isMorningCompleted: todayRecord?.isMorningCompleted ?? false,
+          isEveningCompleted: todayRecord?.isEveningCompleted ?? false,
+          streak: streak,
           onEditMorning: _handleGoToMorning,
           onGoToEvening: _handleGoToEvening,
           onSetIntention: _handleGoToMorning,
@@ -560,7 +557,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   /// 저녁 모드 콘텐츠 (이벤트)
-  Widget _buildEveningMode() {
+  Widget _buildEveningMode(DailyRecord? todayRecord) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -570,9 +567,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
         // 저녁 성찰 섹션
         EveningReflectionSection(
-          selectedTaskIds: _selectedIntentionTaskIds,
-          freeIntentions: _freeIntentions,
-          freeIntentionCompleted: _freeIntentionCompleted,
+          selectedTaskIds: todayRecord?.selectedTaskIds ?? [],
+          freeIntentions: todayRecord?.freeIntentions ?? [],
+          freeIntentionCompleted: todayRecord?.freeIntentionCompleted ?? [],
           onTaskComplete: _handleTaskComplete,
           onFreeIntentionToggle: _handleFreeIntentionToggle,
           onSaveReflection: _handleSaveReflection,
